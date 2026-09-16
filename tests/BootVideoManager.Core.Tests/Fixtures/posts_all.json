@@ -1,0 +1,99 @@
+{
+  "posts": [
+    {
+      "id": "AAAAA",
+      "slug": "star_wars_intro",
+      "title": "Star Wars Intro",
+      "content": "  Synthetic description.  ",
+      "user": { "id": 2, "steam_name": "AuthorOne", "steam_avatar": "https://avatars.example.com/one.jpg" },
+      "thumbnail": "https://cdn.steamdeckrepo.com/thumbnails/aaaaa.png",
+      "video": "https://cdn.steamdeckrepo.com/videos/aaaaa.webm",
+      "video_duration": 10,
+      "video_preview": "https://cdn.steamdeckrepo.com/previews/aaaaa.mp4",
+      "created_at": "2022-10-06T16:34:50.000000Z",
+      "updated_at": "2022-10-07T08:00:00.000000Z",
+      "url": "http://steamdeckrepo.com/post/AAAAA/star_wars_intro",
+      "likes": 224,
+      "downloads": 34826,
+      "type": "boot_video",
+      "devices": ["steam_deck"]
+    },
+    {
+      "id": "BBBBB",
+      "slug": "pokemon_sleep",
+      "title": "Pokémon Sleep",
+      "content": "",
+      "user": { "id": 17, "steam_name": "AuthorTwo", "steam_avatar": null },
+      "thumbnail": "https://cdn.steamdeckrepo.com/thumbnails/bbbbb.png",
+      "video": "https://cdn.steamdeckrepo.com/videos/bbbbb.webm",
+      "video_duration": null,
+      "video_preview": null,
+      "created_at": "2024-03-01T12:00:00.000000Z",
+      "updated_at": null,
+      "url": null,
+      "likes": "12",
+      "downloads": 50,
+      "type": "suspend_video",
+      "devices": ["steam_deck", "steam_machine", "steam_deck"]
+    },
+    {
+      "id": "CCCCC",
+      "slug": "taken_down",
+      "title": "Taken Down",
+      "content": null,
+      "user": { "id": 3, "steam_name": "AuthorThree", "steam_avatar": null },
+      "thumbnail": "https://cdn.steamdeckrepo.com/thumbnails/ccccc.png",
+      "video": "https://cdn.steamdeckrepo.com/videos/ccccc.webm",
+      "video_duration": 5,
+      "video_preview": "https://i.imgur.com/ccccc.mp4",
+      "created_at": "2023-01-01T00:00:00.000000Z",
+      "updated_at": "2023-01-01T00:00:00.000000Z",
+      "url": "http://steamdeckrepo.com/post/CCCCC/taken_down",
+      "likes": 0,
+      "downloads": 1,
+      "type": "boot_video_removed",
+      "devices": []
+    },
+    {
+      "id": "DDDDD",
+      "slug": "",
+      "title": null,
+      "content": "Future kind of video.",
+      "user": null,
+      "thumbnail": "ftp://cdn.steamdeckrepo.com/thumbnails/ddddd.png",
+      "video": "https://cdn.steamdeckrepo.com/videos/ddddd.webm",
+      "video_duration": 7.5,
+      "video_preview": "not a url",
+      "created_at": "garbage date",
+      "updated_at": "2025-05-05T05:05:05.000000Z",
+      "url": "https://example.org/elsewhere",
+      "likes": -4,
+      "downloads": 9,
+      "type": "mystery_video",
+      "devices": ["steam_frame", "hover_board", null]
+    },
+    {
+      "id": "EEEEE",
+      "slug": "no_video",
+      "title": "No Video",
+      "video": null,
+      "type": "boot_video"
+    },
+    {
+      "id": "FFFFF",
+      "slug": "bad_likes",
+      "title": "Bad Likes",
+      "video": "https://cdn.steamdeckrepo.com/videos/fffff.webm",
+      "likes": "a lot",
+      "type": "boot_video"
+    },
+    42,
+    {
+      "slug": "no_id",
+      "title": "No Id",
+      "video": "https://cdn.steamdeckrepo.com/videos/noid.webm",
+      "type": "boot_video"
+    }
+  ],
+  "last_cached_at": 1789577865
+}

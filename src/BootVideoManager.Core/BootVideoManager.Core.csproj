@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>BootVideoManager.Core</RootNamespace>
+    <Description>UI-independent services for Boot Video Manager: steamdeckrepo.com API, catalog cache, Steam integration and install tracking.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TestableIO.System.IO.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="BootVideoManager.Core.Tests" />
+  </ItemGroup>
+
+</Project>

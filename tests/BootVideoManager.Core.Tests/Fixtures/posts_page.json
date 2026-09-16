@@ -1,0 +1,36 @@
+{
+  "posts": [
+    {
+      "id": "BBBBB",
+      "slug": "pokemon_sleep",
+      "title": "Pokémon Sleep",
+      "video": "https://cdn.steamdeckrepo.com/videos/bbbbb.webm",
+      "type": "suspend_video",
+      "devices": ["steam_deck"]
+    },
+    {
+      "id": "AAAAA",
+      "slug": "star_wars_intro",
+      "title": "Star Wars Intro",
+      "video": "https://cdn.steamdeckrepo.com/videos/aaaaa.webm",
+      "type": "boot_video",
+      "devices": ["steam_deck"]
+    },
+    {
+      "id": "BBBBB",
+      "slug": "pokemon_sleep",
+      "title": "Pokémon Sleep (duplicate on page boundary)",
+      "video": "https://cdn.steamdeckrepo.com/videos/bbbbb.webm",
+      "type": "suspend_video",
+      "devices": ["steam_deck"]
+    }
+  ],
+  "sortOptions": {
+    "trending": "Trending",
+    "downloads-desc": "Most Downloaded",
+    "likes-desc": "Most Liked",
+    "created_at-desc": "Uploaded (Newest)",
+    "created_at-asc": "Uploaded (Oldest)"
+  },
+  "currentSort": "trending"
+}
