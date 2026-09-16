@@ -11,9 +11,31 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- XAML-instantiated types must stay public. -->
     <NoWarn>$(NoWarn);CA1515</NoWarn>
-    <!-- Only ship 64-bit VLC binaries on Windows. -->
+    <!-- Only ship the VLC binaries matching the target (x64 by default, arm64 when publishing for it). -->
     <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled Condition="'$(RuntimeIdentifier)' != 'win-arm64'">false</VlcWindowsArm64Enabled>
+    <VlcWindowsX64Enabled Condition="'$(RuntimeIdentifier)' == 'win-arm64'">false</VlcWindowsX64Enabled>
+    <!-- Previews only need network access, demuxing, decoding and raw video output: VLC's streaming,
+         scripting, GUI and visualisation modules are left out. -->
+    <VlcExcludedModules>plugins\stream_out\%2A;plugins\access_output\%2A;plugins\mux\%2A;plugins\lua\%2A;lua\%2A%2A;plugins\gui\%2A;plugins\visualization\%2A;plugins\video_splitter\%2A;plugins\control\%2A;plugins\services_discovery\%2A;hrtfs\%2A%2A</VlcExcludedModules>
   </PropertyGroup>
+
+  <ItemGroup>
+    <VlcWindowsX64ExcludeFiles Include="$(VlcExcludedModules)" />
+    <VlcWindowsArm64ExcludeFiles Include="$(VlcExcludedModules)" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <!-- Native packages (SkiaSharp, HarfBuzz) ship large .pdb files that end users never need. -->
+  <Target Name="RemoveNativeSymbolsFromPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <PublishedSymbols Include="$(PublishDir)**\*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(PublishedSymbols)" />
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
