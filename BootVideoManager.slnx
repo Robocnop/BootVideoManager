@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/BootVideoManager.App/BootVideoManager.App.csproj" />
     <Project Path="src/BootVideoManager.Core/BootVideoManager.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">

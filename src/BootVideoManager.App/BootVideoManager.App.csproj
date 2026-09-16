@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>BootVideoManager</AssemblyName>
+    <RootNamespace>BootVideoManager.App</RootNamespace>
+    <Product>Boot Video Manager</Product>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Video frames are copied straight from libvlc's buffer into the bitmap. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- XAML-instantiated types must stay public. -->
+    <NoWarn>$(NoWarn);CA1515</NoWarn>
+    <!-- Only ship 64-bit VLC binaries on Windows. -->
+    <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="LibVLCSharp" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
+    <!-- Linux uses the system libvlc (or the one bundled by the Flatpak runtime). -->
+    <PackageReference Include="VideoLAN.LibVLC.Windows"
+                      Condition="'$(RuntimeIdentifier)' == '' Or $(RuntimeIdentifier.StartsWith('win'))" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BootVideoManager.Core\BootVideoManager.Core.csproj" />
+  </ItemGroup>
+
+</Project>

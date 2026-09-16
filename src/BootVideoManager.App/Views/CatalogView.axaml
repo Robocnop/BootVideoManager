@@ -1,0 +1,153 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BootVideoManager.App.ViewModels"
+             xmlns:controls="using:BootVideoManager.App.Controls"
+             x:Class="BootVideoManager.App.Views.CatalogView"
+             x:DataType="vm:CatalogViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="WrapPanel.filters > :is(Control)">
+            <Setter Property="Margin" Value="0,0,8,8" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
+
+    <UserControl.DataTemplates>
+        <DataTemplate DataType="vm:PostDetailViewModel">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                    <TextBlock Classes="h2" Text="Aperçu" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="Fermer" Command="{Binding CloseCommand}" />
+                </Grid>
+                <ScrollViewer>
+                    <StackPanel Spacing="8" Margin="0,0,8,0">
+                        <controls:VideoPreview Source="{Binding PreviewUri}" Height="250" />
+                        <TextBlock Classes="h2" Text="{Binding Card.Title}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                        <TextBlock Classes="muted" Text="{Binding Card.AuthorText}" />
+                        <TextBlock Classes="muted small" Text="{Binding Card.StatsText}" />
+                        <TextBlock Classes="muted small" Text="{Binding Card.TagsText}" />
+                        <TextBlock Classes="muted small" Text="{Binding UploadedText}" />
+
+                        <Grid Margin="0,8,0,0">
+                            <Button Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    Content="Installer" Command="{Binding Card.InstallCommand}"
+                                    IsVisible="{Binding Card.CanInstall}" />
+                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                    Content="Retirer de Steam" Command="{Binding Card.RemoveCommand}"
+                                    IsVisible="{Binding Card.IsInstalled}" />
+                            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding Card.IsInstalling}">
+                                <ProgressBar Value="{Binding Card.Progress}" IsIndeterminate="{Binding Card.IsProgressIndeterminate}"
+                                             VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Content="Annuler" Margin="8,0,0,0" Command="{Binding Card.CancelInstallCommand}" />
+                            </Grid>
+                        </Grid>
+                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Content="Voir sur steamdeckrepo.com" Command="{Binding OpenPageCommand}" />
+
+                        <TextBlock Classes="h3" Text="Description" Margin="0,8,0,0" />
+                        <SelectableTextBlock Text="{Binding Description}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+        <WrapPanel Classes="filters">
+            <TextBox Width="250" PlaceholderText="Rechercher un titre ou un auteur…" Text="{Binding SearchText}"
+                     AutomationProperties.Name="Rechercher" />
+            <ComboBox Width="170" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}"
+                      AutomationProperties.Name="Tri" />
+            <ComboBox Width="185" ItemsSource="{Binding TypeOptions}" SelectedItem="{Binding SelectedType}"
+                      AutomationProperties.Name="Type de vidéo" />
+            <ComboBox Width="160" ItemsSource="{Binding DeviceOptions}" SelectedItem="{Binding SelectedDevice}"
+                      AutomationProperties.Name="Appareil" />
+            <ComboBox Width="180" ItemsSource="{Binding DurationOptions}" SelectedItem="{Binding SelectedDuration}"
+                      AutomationProperties.Name="Durée" />
+            <Button Content="Réinitialiser" Command="{Binding ResetFiltersCommand}" />
+            <Button Content="Actualiser" Command="{Binding RefreshCommand}" />
+        </WrapPanel>
+
+        <StackPanel Grid.Row="1" Spacing="8" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Classes="h3" Text="{Binding ResultText}" />
+                <TextBlock Classes="muted small" Text="{Binding StatusText}" VerticalAlignment="Center" />
+            </StackPanel>
+            <Border Classes="banner-error" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="Réessayer" Margin="12,0,0,0" Command="{Binding RefreshCommand}" />
+                </Grid>
+            </Border>
+            <Border Classes="banner-warning" IsVisible="{Binding WarningMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <TextBlock Text="{Binding WarningMessage}" TextWrapping="Wrap" />
+            </Border>
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" />
+        </StackPanel>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+            <ScrollViewer x:Name="ResultsScroller" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:PostCardViewModel">
+                                <Border Classes="card" Width="236" Margin="0,0,12,12">
+                                    <StackPanel>
+                                        <Button Classes="thumbnail" Command="{Binding OpenDetailCommand}"
+                                                ToolTip.Tip="Aperçu et détails"
+                                                AutomationProperties.Name="{Binding PreviewAutomationName}">
+                                            <Panel Height="148">
+                                                <Border Background="{StaticResource SurfaceRaisedBrush}" />
+                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                <Border Classes="badge" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6">
+                                                    <TextBlock Text="{Binding DurationText}" />
+                                                </Border>
+                                                <Border Classes="badge installed" IsVisible="{Binding IsInstalled}"
+                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6">
+                                                    <TextBlock Text="Installée" />
+                                                </Border>
+                                            </Panel>
+                                        </Button>
+                                        <StackPanel Margin="10,8,10,10" Spacing="2">
+                                            <TextBlock Classes="card-title" Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding Title}" />
+                                            <TextBlock Classes="muted small" Text="{Binding AuthorText}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Classes="muted small" Text="{Binding StatsText}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Classes="muted small" Text="{Binding TagsText}" TextTrimming="CharacterEllipsis" />
+                                            <Grid Margin="0,8,0,0" Height="32">
+                                                <Button Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                        Content="Installer" Command="{Binding InstallCommand}"
+                                                        IsVisible="{Binding CanInstall}" />
+                                                <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                        Content="Retirer" Command="{Binding RemoveCommand}"
+                                                        IsVisible="{Binding IsInstalled}" />
+                                                <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsInstalling}">
+                                                    <ProgressBar Value="{Binding Progress}" IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                                                 VerticalAlignment="Center" MinWidth="0" />
+                                                    <Button Grid.Column="1" Content="Annuler" Margin="8,0,0,0"
+                                                            Command="{Binding CancelInstallCommand}" />
+                                                </Grid>
+                                            </Grid>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Afficher plus" HorizontalAlignment="Center" Margin="0,4,0,24"
+                            IsVisible="{Binding CanLoadMore}" Command="{Binding LoadMoreCommand}" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Column="1" Classes="panel" Width="440" Margin="12,0,0,12"
+                    IsVisible="{Binding SelectedPost, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <ContentControl Content="{Binding SelectedPost}" />
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

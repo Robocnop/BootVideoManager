@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BootVideoManager.App.ViewModels"
+        xmlns:views="using:BootVideoManager.App.Views"
+        x:Class="BootVideoManager.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Boot Video Manager"
+        Width="1280" Height="800" MinWidth="960" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource AppBackgroundBrush}">
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding EscapeCommand}" />
+    </Window.KeyBindings>
+
+    <Grid>
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Classes="header">
+                <Grid ColumnDefinitions="Auto,*">
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock Classes="app-title" Text="Boot Video Manager" />
+                        <TextBlock Classes="muted" VerticalAlignment="Center" Text="Vidéos de démarrage pour Steam Big Picture et Steam Deck" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding SteamText}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" Margin="24,0,0,0" />
+                </Grid>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Classes="footer">
+                <TextBlock Classes="muted small" TextTrimming="CharacterEllipsis"
+                           Text="Catalogue et vidéos : steamdeckrepo.com. Chaque vidéo appartient à son auteur. Application non officielle, sans lien avec Valve ni steamdeckrepo.com." />
+            </Border>
+
+            <TabControl SelectedIndex="{Binding SelectedTabIndex}" Padding="16,4,16,0">
+                <TabItem Header="Catalogue">
+                    <views:CatalogView DataContext="{Binding Catalog}" />
+                </TabItem>
+                <TabItem Header="{Binding InstalledTabHeader}">
+                    <views:InstalledView DataContext="{Binding Installed}" />
+                </TabItem>
+                <TabItem Header="Réglages">
+                    <views:SettingsView DataContext="{Binding Settings}" />
+                </TabItem>
+            </TabControl>
+        </DockPanel>
+
+        <!-- Notification banner -->
+        <Border Classes="notification"
+                Classes.error="{Binding Notification.IsError, FallbackValue=False}"
+                IsVisible="{Binding Notification, Converter={x:Static ObjectConverters.IsNotNull}}"
+                HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                Margin="16,0,16,48" MaxWidth="760">
+            <Grid ColumnDefinitions="*,Auto">
+                <SelectableTextBlock Text="{Binding Notification.Message, FallbackValue=''}"
+                                     TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="Fermer" Margin="16,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding Notification.DismissCommand, FallbackValue={x:Null}}" />
+            </Grid>
+        </Border>
+
+        <!-- Confirmation dialog -->
+        <Grid Background="#B3000000"
+              IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <ContentControl Content="{Binding Dialog}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ContentControl.DataTemplates>
+                    <DataTemplate DataType="vm:ConfirmDialogViewModel">
+                        <Border Classes="panel" MaxWidth="560" Padding="24">
+                            <StackPanel Spacing="16">
+                                <TextBlock Classes="h2" Text="{Binding Title}" />
+                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                    <Button Content="Annuler" Command="{Binding CancelCommand}" IsDefault="False" />
+                                    <Button Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}"
+                                            Classes.danger="{Binding IsDestructive}"
+                                            Classes.accent="{Binding !IsDestructive}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ContentControl.DataTemplates>
+            </ContentControl>
+        </Grid>
+    </Grid>
+</Window>

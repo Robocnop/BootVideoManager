@@ -1,0 +1,83 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BootVideoManager.App.ViewModels"
+             x:Class="BootVideoManager.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <ScrollViewer>
+        <StackPanel Spacing="16" Margin="0,12,8,16" MaxWidth="900" HorizontalAlignment="Left">
+
+            <Border Classes="panel">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="Dossier Steam" />
+                    <StackPanel Spacing="2">
+                        <TextBlock Classes="muted small" Text="Dossier utilisé" />
+                        <SelectableTextBlock Text="{Binding CurrentRoot}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Classes="muted small" Text="Les vidéos sont placées dans" />
+                        <SelectableTextBlock Text="{Binding CurrentMoviesDirectory}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <TextBlock Classes="h3" Text="Installations détectées" Margin="0,8,0,0" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap"
+                               Text="Registre Windows, ~/.steam, ~/.local/share/Steam, Flatpak et Snap sont examinés automatiquement."
+                               IsVisible="{Binding !Detected.Count}" />
+                    <ItemsControl ItemsSource="{Binding Detected}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:SteamChoice">
+                                <Border Classes="card" Padding="12,8" Margin="0,0,0,6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding RootPath}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Classes="muted small" Text="{Binding KindLabel}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="Utiliser" VerticalAlignment="Center"
+                                                Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UseDetectedCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Détecter à nouveau" Command="{Binding DetectInstallationsCommand}" />
+                        <Button Classes="accent" Content="Choisir un dossier…" Command="{Binding BrowseCommand}" />
+                    </StackPanel>
+                    <Border Classes="banner-error" IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="panel">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="h2" Text="Activer une vidéo dans Steam" />
+                    <TextBlock TextWrapping="Wrap" Text="1. Installez une vidéo depuis le catalogue (ou importez un fichier .webm)." />
+                    <TextBlock TextWrapping="Wrap" Text="2. Dans Steam, ouvrez Paramètres › Personnalisation." />
+                    <TextBlock TextWrapping="Wrap" Text="3. Choisissez la vidéo dans « Vidéo de démarrage ». Les animations de veille peuvent être utilisées comme vidéo de sortie de veille." />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap"
+                               Text="Sur Windows, la vidéo ne se joue qu'au lancement du mode Big Picture. Si Steam reste bloqué sur un écran noir, retirez la vidéo depuis l'onglet Installées." />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="panel">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="h2" Text="À propos" />
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Le catalogue, les miniatures et les vidéos proviennent de steamdeckrepo.com. Chaque vidéo reste la création de son auteur, crédité sur chaque fiche. Merci à la communauté et aux mainteneurs du site." />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap"
+                               Text="L'application interroge le site avec parcimonie : catalogue mis en cache une heure, requêtes conditionnelles, miniatures en cache, User-Agent identifiable." />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Content="Ouvrir steamdeckrepo.com" Command="{Binding OpenSiteCommand}" />
+                        <TextBlock Classes="muted small" VerticalAlignment="Center">
+                            <Run Text="Version" />
+                            <Run Text="{Binding Version}" />
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
