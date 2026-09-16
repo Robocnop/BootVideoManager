@@ -21,7 +21,7 @@ Site Laravel + Inertia/Vue. Routes publiques exposées par Ziggy dans le HTML (`
 
 ### `GET https://steamdeckrepo.com/api/posts`
 - Réponse : `{ "posts": Post[], "sortOptions": {key: label}, "currentSort": string }` — **aucune méta de pagination**.
-- Paramètres respectés : `page`, `per_page`, `sort`, `search`, `device`.
+- Paramètres respectés : `page`, `per_page` (plafonné à 100), `sort`, `search`, `device`.
 - Paramètres **ignorés** : `duration`, `type` (mélange boot et suspend).
 - `sort` ∈ `trending`, `downloads-desc`, `likes-desc`, `created_at-desc`, `created_at-asc`.
 

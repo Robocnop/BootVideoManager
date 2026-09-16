@@ -7,7 +7,7 @@ Voir [research.md](research.md) pour les constats sur l'API et Steam.
 | Sujet | Décision | Raison |
 |---|---|---|
 | Runtime | **.NET 10 (LTS)** | .NET 8 sort du support le 2026-11-10 ; .NET 10 est supporté jusqu'en novembre 2028. |
-| UI | Avalonia + CommunityToolkit.Mvvm | Cross-platform Windows / Linux / Steam Deck. |
+| UI | Avalonia 12 + CommunityToolkit.Mvvm (propriétés partielles `[ObservableProperty]`) | Cross-platform Windows / Linux / Steam Deck. |
 | Source catalogue | `/api/posts/all` en cache disque, rafraîchi au plus 1×/h via `If-Modified-Since` | 1 requête (souvent 304) au lieu de dizaines de pages ; l'API paginée n'a pas de méta et ignore `type`/`duration`. |
 | Recherche / tri / filtres | En local sur le catalogue | ~8 400 entrées : instantané, zéro charge serveur, fonctionne hors ligne. |
 | Tri « Tendances » | Ordre récupéré via `/api/posts?sort=trending&per_page=…` (rare, mis en cache) | Formule serveur non reproductible localement. |
@@ -16,7 +16,8 @@ Voir [research.md](research.md) pour les constats sur l'API et Steam.
 | Téléchargement | `/post/download/{id}` (redirection) + fichier `.part` + renommage atomique | Passe par le lien officiel du site ; pas de fichier à moitié écrit. |
 | Nom de fichier | `{slug}_{id}.webm`, slug assaini | 246 slugs dupliqués dans le catalogue. |
 | Preview | LibVLCSharp, rendu dans un `WriteableBitmap` (callbacks vidéo) | Évite le problème « airspace » du `VideoView` natif (overlays, mode manette). |
-| Tests | xUnit + System.IO.Abstractions.TestingHelpers | Pas de dépendance à licence commerciale (FluentAssertions ≥ 8). |
+| Tests | xUnit v3 (Microsoft.Testing.Platform) + System.IO.Abstractions.TestingHelpers + FakeTimeProvider | Pas de dépendance à licence commerciale (FluentAssertions ≥ 8) ; .NET 10 impose MTP pour `dotnet test`. |
+| Test manuel | Option `--steam-root <dossier>` | Essayer l'application sur une copie sans toucher au vrai dossier Steam. |
 
 ## Couches
 
@@ -28,14 +29,20 @@ src/BootVideoManager.Core           bibliothèque sans UI, 100 % testable
   Catalog/      CatalogCache       fichier cache + Last-Modified
                 CatalogService     chargement / rafraîchissement / requêtes locales
   Steam/        ISteamLocator      Windows (registre), Linux (natif, Flatpak, Snap)
-  Install/      InstallService     download → .part → move ; uninstall avec garde-fous
+  Install/      InstallService     download → .part → move ; listing réconcilié (suivi / modifié / ajouté
+                                   hors app) ; uninstall avec garde-fous ; import local
                 ManifestStore      JSON atomique dans le dossier de config de l'app
-                Reconciler         fichiers manquants / modifiés / ajoutés hors app
+                VideoFileNames     noms de fichiers sûrs et validation anti-traversée
   Caching/      ThumbnailCache     cache disque des miniatures
+  Platform/     AppPaths, SettingsStore
 src/BootVideoManager.App            Avalonia
-  ViewModels/   Shell, Catalog, PostCard, PostDetail, Installed, Settings
-  Views/
-tests/BootVideoManager.Core.Tests
+  Services/     AppServices (composition), InstallCoordinator (état partagé + confirmations),
+                IPlatformServices (sélecteurs de fichiers, ouverture d'URL), UserMessages
+  ViewModels/   MainWindow, Catalog, PostCard, PostDetail, Installed, Settings, dialogues
+  Views/        MainWindow, CatalogView, InstalledView, SettingsView
+  Controls/     VideoPreview + VlcFrameRenderer (libvlc → WriteableBitmap)
+tests/BootVideoManager.Core.Tests   parsing API, client HTTP, retries, cache, requêtes, install/désinstall,
+                                    manifeste, détection Steam, miniatures, réglages
 ```
 
 ## Manifeste
