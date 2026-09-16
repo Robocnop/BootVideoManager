@@ -1,0 +1,23 @@
+## .NET build output
+bin/
+obj/
+artifacts/
+publish/
+TestResults/
+*.user
+*.suo
+*.rsuser
+
+## IDEs
+.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Local tooling
+.codegraph/
+graphify-out/
