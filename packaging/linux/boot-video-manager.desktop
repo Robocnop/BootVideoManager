@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Boot Video Manager
+GenericName=Steam boot video manager
+Comment=Parcourir et installer des vidéos de démarrage pour Steam Big Picture et le Steam Deck
+Exec=BootVideoManager
+Icon=boot-video-manager
+Terminal=false
+Categories=Utility;Game;
+Keywords=Steam;Deck;Big Picture;boot;startup;video;
