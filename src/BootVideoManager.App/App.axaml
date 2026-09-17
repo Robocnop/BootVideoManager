@@ -4,127 +4,353 @@
              RequestedThemeVariant="Dark">
 
     <Application.Resources>
-        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0E141B" />
-        <SolidColorBrush x:Key="SurfaceBrush" Color="#171F29" />
-        <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1F2A36" />
-        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#2A3746" />
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#9AA8B8" />
-        <SolidColorBrush x:Key="SuccessBrush" Color="#4CC38A" />
-        <SolidColorBrush x:Key="WarningBrush" Color="#F2B84B" />
-        <SolidColorBrush x:Key="DangerBrush" Color="#E5534B" />
+        <!-- Steam client palette -->
+        <SolidColorBrush x:Key="TopBarBrush" Color="#171A21" />
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#16202D" />
+        <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#1F2D3D" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#26374A" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#8F98A0" />
+        <SolidColorBrush x:Key="SteamBlueBrush" Color="#1A9FFF" />
+        <SolidColorBrush x:Key="SteamLightBlueBrush" Color="#66C0F4" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#A4D007" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#E5B94B" />
+        <SolidColorBrush x:Key="DangerBrush" Color="#C2413A" />
+
+        <LinearGradientBrush x:Key="AppBackgroundBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#213A50" />
+            <GradientStop Offset="0.3" Color="#1B2838" />
+            <GradientStop Offset="1" Color="#131A24" />
+        </LinearGradientBrush>
+
+        <!-- Default buttons: Steam's dark blue "inner fade" style. -->
+        <SolidColorBrush x:Key="ButtonBackground" Color="#3367C1F5" />
+        <LinearGradientBrush x:Key="ButtonBackgroundPointerOver" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#66C0F4" />
+            <GradientStop Offset="1" Color="#417A9B" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#417A9B" />
+        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#1A2A3A" />
+        <SolidColorBrush x:Key="ButtonForeground" Color="#67C1F5" />
+        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#4B5A68" />
+        <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent" />
+        <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+        <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+        <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="Transparent" />
+
+        <!-- Primary actions: Steam's green "install / play" button. -->
+        <LinearGradientBrush x:Key="AccentButtonBackground" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#75B022" />
+            <GradientStop Offset="1" Color="#588A1B" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="AccentButtonBackgroundPointerOver" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#8ED629" />
+            <GradientStop Offset="1" Color="#6AA621" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="AccentButtonBackgroundPressed" Color="#588A1B" />
+        <SolidColorBrush x:Key="AccentButtonBackgroundDisabled" Color="#2B3A1C" />
+        <SolidColorBrush x:Key="AccentButtonForeground" Color="#D2EFA9" />
+        <SolidColorBrush x:Key="AccentButtonForegroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="AccentButtonForegroundPressed" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="AccentButtonForegroundDisabled" Color="#5F6E50" />
+        <SolidColorBrush x:Key="AccentButtonBorderBrush" Color="Transparent" />
+        <SolidColorBrush x:Key="AccentButtonBorderBrushPointerOver" Color="Transparent" />
+        <SolidColorBrush x:Key="AccentButtonBorderBrushPressed" Color="Transparent" />
+
+        <!-- Inputs -->
+        <SolidColorBrush x:Key="TextControlBackground" Color="#0E1620" />
+        <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#122030" />
+        <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#0E1620" />
+        <SolidColorBrush x:Key="TextControlForeground" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextControlBorderBrush" Color="#2A3F55" />
+        <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#417A9B" />
+        <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#66C0F4" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6B7A88" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#6B7A88" />
+        <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#6B7A88" />
+        <SolidColorBrush x:Key="ComboBoxBackground" Color="#223245" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#2A475E" />
+        <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#2A475E" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="Transparent" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#417A9B" />
+        <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#66C0F4" />
+        <SolidColorBrush x:Key="ComboBoxForeground" Color="#C7D5E0" />
+        <SolidColorBrush x:Key="ComboBoxForegroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#67C1F5" />
+        <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#223245" />
+        <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#2A475E" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#2A475E" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#3D6C8D" />
+        <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#4A7EA3" />
+
+        <SolidColorBrush x:Key="ProgressBarForeground" Color="#1A9FFF" />
+        <SolidColorBrush x:Key="ProgressBarBackground" Color="#0E1620" />
+        <CornerRadius x:Key="ControlCornerRadius">3</CornerRadius>
+        <CornerRadius x:Key="OverlayCornerRadius">4</CornerRadius>
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme>
             <FluentTheme.Palettes>
-                <ColorPaletteResources x:Key="Dark" Accent="#1A9FFF" RegionColor="#0E141B" />
+                <ColorPaletteResources x:Key="Dark" Accent="#1A9FFF" RegionColor="#1B2838" BaseHigh="#C7D5E0"
+                                       AltHigh="#0E1620" ChromeMediumLow="#1B2838" ChromeLow="#171A21" />
             </FluentTheme.Palettes>
         </FluentTheme>
 
         <!-- Typography -->
         <Style Selector="TextBlock.app-title">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="LetterSpacing" Value="1" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
         <Style Selector="TextBlock.h2">
-            <Setter Property="FontSize" Value="18" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="LetterSpacing" Value="0.6" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
         <Style Selector="TextBlock.h3">
-            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
-        <Style Selector="TextBlock.muted">
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="LetterSpacing" Value="1.2" />
+            <Setter Property="Foreground" Value="{StaticResource SteamLightBlueBrush}" />
+        </Style>
+        <Style Selector="TextBlock.muted, SelectableTextBlock.muted">
             <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
         </Style>
-        <Style Selector="TextBlock.small">
+        <Style Selector="TextBlock.small, SelectableTextBlock.small">
             <Setter Property="FontSize" Value="12" />
         </Style>
         <Style Selector="TextBlock.card-title">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+
+        <!-- Top navigation bar, laid out like the Steam client's STORE / LIBRARY / COMMUNITY bar. -->
+        <Style Selector="Border.topbar">
+            <Setter Property="Background" Value="{StaticResource TopBarBrush}" />
+            <Setter Property="BoxShadow" Value="0 2 12 0 #66000000" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Height" Value="64" />
+        </Style>
+        <Style Selector="ListBox.nav">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="Foreground" Value="#DCDEDF" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Panel Background="Transparent">
+                        <ContentPresenter Name="NavContent" Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                        <Border Name="NavPipe" Height="3" VerticalAlignment="Bottom" Margin="16,0"
+                                Background="{StaticResource SteamBlueBrush}" CornerRadius="2,2,0,0" Opacity="0">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                    </Panel>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:pointerover">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected">
+            <Setter Property="Foreground" Value="{StaticResource SteamBlueBrush}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected /template/ Border#NavPipe">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="Border.count">
+            <Setter Property="Background" Value="#2A475E" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="7,1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.count TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#C7D5E0" />
+        </Style>
+        <Style Selector="Border.steam-chip">
+            <Setter Property="Background" Value="#0E1620" />
+            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="Padding" Value="10,5" />
         </Style>
 
         <!-- Surfaces -->
-        <Style Selector="Border.header">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-            <Setter Property="Padding" Value="16,10" />
-        </Style>
         <Style Selector="Border.footer">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="Background" Value="{StaticResource TopBarBrush}" />
+            <Setter Property="Padding" Value="18,6" />
+        </Style>
+        <Style Selector="Border.toolbar">
+            <Setter Property="Background" Value="#80101822" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,10,2,2" />
         </Style>
         <Style Selector="Border.card">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="CornerRadius" Value="4" />
             <Setter Property="ClipToBounds" Value="True" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.card:pointerover">
+            <Setter Property="Background" Value="#1C2A3A" />
+        </Style>
+        <Style Selector="Border.tile">
+            <Setter Property="BoxShadow" Value="0 4 10 0 #59000000" />
+            <Setter Property="RenderTransform" Value="translateY(0px)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.15" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.tile:pointerover">
+            <Setter Property="BorderBrush" Value="#5566C0F4" />
+            <Setter Property="RenderTransform" Value="translateY(-3px)" />
+            <Setter Property="BoxShadow" Value="0 8 22 0 #8C000000" />
+        </Style>
+        <Style Selector="Image.thumb">
+            <Setter Property="RenderTransform" Value="scale(1)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.25" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.tile:pointerover Image.thumb">
+            <Setter Property="RenderTransform" Value="scale(1.05)" />
         </Style>
         <Style Selector="Border.panel">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+            <Setter Property="Background" Value="#CC16202D" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="16" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style Selector="Border.detail">
+            <Setter Property="Background" Value="#F0101822" />
+            <Setter Property="BorderBrush" Value="{StaticResource SteamBlueBrush}" />
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+            <Setter Property="CornerRadius" Value="0,4,4,0" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style Selector="Border.accent-rule">
+            <Setter Property="Height" Value="2" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Background">
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                    <GradientStop Offset="0" Color="#1A9FFF" />
+                    <GradientStop Offset="1" Color="#001A9FFF" />
+                </LinearGradientBrush>
+            </Setter>
         </Style>
         <Style Selector="Border.badge">
-            <Setter Property="Background" Value="#CC0E141B" />
-            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="#D9000000" />
+            <Setter Property="CornerRadius" Value="2" />
             <Setter Property="Padding" Value="6,2" />
         </Style>
         <Style Selector="Border.badge TextBlock">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
         <Style Selector="Border.badge.installed">
-            <Setter Property="Background" Value="{StaticResource SuccessBrush}" />
+            <Setter Property="Background" Value="#E64C6B22" />
         </Style>
         <Style Selector="Border.badge.installed TextBlock">
-            <Setter Property="Foreground" Value="#0E141B" />
+            <Setter Property="Foreground" Value="#D2EFA9" />
+            <Setter Property="LetterSpacing" Value="0.8" />
         </Style>
         <Style Selector="Border.pill">
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Padding" Value="6,1" />
             <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
             <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
+        <Style Selector="Border.pill.success">
+            <Setter Property="Background" Value="#334C6B22" />
+        </Style>
         <Style Selector="Border.pill.success TextBlock">
             <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+        </Style>
+        <Style Selector="Border.pill.warning">
+            <Setter Property="Background" Value="#33E5B94B" />
         </Style>
         <Style Selector="Border.pill.warning TextBlock">
             <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
         </Style>
         <Style Selector="Border.notification">
-            <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
-            <Setter Property="BorderThickness" Value="0,0,0,3" />
-            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="#F02A3F55" />
+            <Setter Property="BorderBrush" Value="{StaticResource SteamBlueBrush}" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Padding" Value="16,10" />
-            <Setter Property="BoxShadow" Value="0 6 24 0 #80000000" />
+            <Setter Property="BoxShadow" Value="0 8 28 0 #99000000" />
         </Style>
         <Style Selector="Border.notification.error">
             <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
         </Style>
         <Style Selector="Border.banner-error">
-            <Setter Property="Background" Value="#33E5534B" />
+            <Setter Property="Background" Value="#26C2413A" />
             <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Padding" Value="12,8" />
         </Style>
         <Style Selector="Border.banner-warning">
-            <Setter Property="Background" Value="#33F2B84B" />
+            <Setter Property="Background" Value="#26E5B94B" />
             <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="CornerRadius" Value="3" />
             <Setter Property="Padding" Value="12,8" />
         </Style>
 
         <!-- Buttons -->
+        <Style Selector="Button">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.accent">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
         <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#33C2413A" />
+            <Setter Property="Foreground" Value="#F08A84" />
+        </Style>
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{StaticResource DangerBrush}" />
-            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
         <Style Selector="Button.thumbnail">
             <Setter Property="Padding" Value="0" />
@@ -134,14 +360,17 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
-        <Style Selector="Button.thumbnail:pointerover /template/ ContentPresenter">
-            <Setter Property="Opacity" Value="0.85" />
+        <Style Selector="Button.thumbnail:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.thumbnail:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
         </Style>
 
         <!-- Larger focus cues help when navigating with a controller mapped to the keyboard. -->
         <Style Selector=":is(Button):focus-visible">
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemAccentColor}" />
+            <Setter Property="BorderBrush" Value="{StaticResource SteamLightBlueBrush}" />
             <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:focus-visible">
+            <Setter Property="Foreground" Value="#FFFFFF" />
         </Style>
     </Application.Styles>
 </Application>

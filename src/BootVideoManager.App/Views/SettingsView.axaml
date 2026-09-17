@@ -9,7 +9,8 @@
 
             <Border Classes="panel">
                 <StackPanel Spacing="10">
-                    <TextBlock Classes="h2" Text="Dossier Steam" />
+                    <TextBlock Classes="h2" Text="DOSSIER STEAM" />
+                    <Border Classes="accent-rule" Margin="0,0,0,4" />
                     <StackPanel Spacing="2">
                         <TextBlock Classes="muted small" Text="Dossier utilisé" />
                         <SelectableTextBlock Text="{Binding CurrentRoot}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -19,7 +20,7 @@
                         <SelectableTextBlock Text="{Binding CurrentMoviesDirectory}" TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <TextBlock Classes="h3" Text="Installations détectées" Margin="0,8,0,0" />
+                    <TextBlock Classes="section" Text="INSTALLATIONS DÉTECTÉES" Margin="0,8,0,0" />
                     <TextBlock Classes="muted small" TextWrapping="Wrap"
                                Text="Le registre Windows, ~/.steam, ~/.local/share/Steam ainsi que les installations Flatpak et Snap sont analysés automatiquement."
                                IsVisible="{Binding !Detected.Count}" />
@@ -53,7 +54,8 @@
 
             <Border Classes="panel">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="h2" Text="Utiliser une vidéo dans Steam" />
+                    <TextBlock Classes="h2" Text="UTILISER UNE VIDÉO DANS STEAM" />
+                    <Border Classes="accent-rule" Margin="0,0,0,4" />
                     <TextBlock TextWrapping="Wrap" Text="1. Installez une vidéo depuis le catalogue (ou importez un fichier .webm)." />
                     <TextBlock TextWrapping="Wrap" Text="2. Dans Steam, ouvrez Paramètres › Personnalisation." />
                     <TextBlock TextWrapping="Wrap" Text="3. Sélectionnez-la dans « Vidéo de démarrage ». Les animations de veille se choisissent de la même manière, dans la rubrique consacrée à la mise en veille." />
@@ -64,7 +66,8 @@
 
             <Border Classes="panel">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="h2" Text="À propos" />
+                    <TextBlock Classes="h2" Text="À PROPOS" />
+                    <Border Classes="accent-rule" Margin="0,0,0,4" />
                     <TextBlock TextWrapping="Wrap"
                                Text="Le catalogue, les miniatures et les vidéos proviennent de steamdeckrepo.com. Chaque vidéo reste l'œuvre de son auteur, crédité sur sa fiche. Merci à la communauté et à l'équipe du site." />
                     <TextBlock Classes="muted small" TextWrapping="Wrap"

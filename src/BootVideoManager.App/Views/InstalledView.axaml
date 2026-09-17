@@ -4,10 +4,10 @@
              x:Class="BootVideoManager.App.Views.InstalledView"
              x:DataType="vm:InstalledViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="0,16,0,0">
         <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="2" Margin="0,0,16,0">
-                <TextBlock Classes="h3" Text="{Binding Summary}" />
+                <TextBlock Classes="h2" Text="{Binding Summary}" />
                 <SelectableTextBlock Classes="muted small" Text="{Binding MoviesDirectory}" TextWrapping="Wrap" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -19,11 +19,7 @@
             </StackPanel>
         </Grid>
 
-        <StackPanel Grid.Row="1" Spacing="8" Margin="0,12">
-            <Border Classes="banner-warning">
-                <TextBlock TextWrapping="Wrap"
-                           Text="L'interrupteur détermine si Steam peut lire chaque vidéo, sans rien retélécharger ni supprimer : une vidéo désactivée est simplement rangée dans un dossier « _disabled » voisin, et une vidéo d'origine de Steam activée est copiée dans le dossier des vidéos. Sélectionnez ensuite la vidéo dans Steam › Paramètres › Personnalisation, ou activez « Lecture aléatoire » pour que Steam choisisse au hasard parmi les vidéos activées (sous Windows, uniquement au lancement de Big Picture). Les fichiers ajoutés en dehors de l'application ne sont jamais supprimés sans confirmation." />
-            </Border>
+        <StackPanel Grid.Row="1" Spacing="8" Margin="0,10">
             <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
         </StackPanel>
 
@@ -38,9 +34,9 @@
                 <ItemsControl ItemsSource="{Binding Items}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:InstalledItemViewModel">
-                            <Border Classes="card" Margin="0,0,8,8" Padding="10">
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
-                                    <Border Width="128" Height="80" CornerRadius="6" ClipToBounds="True"
+                            <Border Classes="card" Margin="0,0,8,6" Padding="8">
+                                <Grid ColumnDefinitions="Auto,*,Auto,112,Auto">
+                                    <Border Width="142" Height="80" CornerRadius="3" ClipToBounds="True"
                                             Background="{StaticResource SurfaceRaisedBrush}">
                                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                     </Border>
@@ -64,7 +60,7 @@
                                                   IsVisible="{Binding CanToggle}"
                                                   IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                                   Command="{Binding ToggleEnabledCommand}" />
-                                    <Button Grid.Column="3" Content="Voir la page" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    <Button Grid.Column="3" Content="Voir la page" Margin="0,0,8,0" VerticalAlignment="Center" HorizontalAlignment="Right"
                                             IsVisible="{Binding HasPage}" Command="{Binding OpenPageCommand}" />
                                     <Button Grid.Column="4" Content="Supprimer" VerticalAlignment="Center"
                                             IsVisible="{Binding CanDelete}" Command="{Binding RemoveCommand}" />

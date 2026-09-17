@@ -16,16 +16,42 @@
 
     <Grid>
         <DockPanel>
-            <Border DockPanel.Dock="Top" Classes="header">
-                <Grid ColumnDefinitions="Auto,*">
-                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        <Image Source="/Assets/app-icon.png" Width="32" Height="32" VerticalAlignment="Center" />
-                        <TextBlock Classes="app-title" Text="Boot Video Manager" />
-                        <TextBlock Classes="muted" VerticalAlignment="Center" Text="Vidéos de démarrage pour Steam Big Picture et Steam Deck" />
+            <Border DockPanel.Dock="Top" Classes="topbar">
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
+                                ToolTip.Tip="Vidéos de démarrage pour Steam Big Picture et Steam Deck">
+                        <Image Source="/Assets/app-icon.png" Width="34" Height="34" VerticalAlignment="Center" />
+                        <TextBlock Classes="app-title" Text="BOOT VIDEO MANAGER" VerticalAlignment="Center" />
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding SteamText}"
-                               HorizontalAlignment="Right" VerticalAlignment="Center"
-                               TextTrimming="CharacterEllipsis" Margin="24,0,0,0" />
+
+                    <ListBox Grid.Column="1" Classes="nav" Margin="28,0,0,0"
+                             SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}"
+                             AutomationProperties.Name="Navigation">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBoxItem>
+                            <TextBlock Text="CATALOGUE" LetterSpacing="0.8" />
+                        </ListBoxItem>
+                        <ListBoxItem>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="INSTALLÉES" LetterSpacing="0.8" VerticalAlignment="Center" />
+                                <Border Classes="count">
+                                    <TextBlock Text="{Binding InstalledCount}" />
+                                </Border>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem>
+                            <TextBlock Text="RÉGLAGES" LetterSpacing="0.8" />
+                        </ListBoxItem>
+                    </ListBox>
+
+                    <Border Grid.Column="2" Classes="steam-chip" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Margin="24,0,0,0" ToolTip.Tip="{Binding SteamText}">
+                        <TextBlock Classes="muted small" Text="{Binding SteamText}" TextTrimming="CharacterEllipsis" />
+                    </Border>
                 </Grid>
             </Border>
 
@@ -34,17 +60,17 @@
                            Text="Catalogue et vidéos fournis par steamdeckrepo.com. Chaque vidéo appartient à son auteur. Application non officielle, sans lien avec Valve ni avec steamdeckrepo.com." />
             </Border>
 
-            <TabControl SelectedIndex="{Binding SelectedTabIndex}" Padding="16,4,16,0">
-                <TabItem Header="Catalogue">
+            <Panel Margin="18,0">
+                <Panel IsVisible="{Binding IsCatalogTab}">
                     <views:CatalogView DataContext="{Binding Catalog}" />
-                </TabItem>
-                <TabItem Header="{Binding InstalledTabHeader}">
+                </Panel>
+                <Panel IsVisible="{Binding IsInstalledTab}">
                     <views:InstalledView DataContext="{Binding Installed}" />
-                </TabItem>
-                <TabItem Header="Réglages">
+                </Panel>
+                <Panel IsVisible="{Binding IsSettingsTab}">
                     <views:SettingsView DataContext="{Binding Settings}" />
-                </TabItem>
-            </TabControl>
+                </Panel>
+            </Panel>
         </DockPanel>
 
         <!-- Notification banner -->
@@ -54,7 +80,7 @@
                 HorizontalAlignment="Center" VerticalAlignment="Bottom"
                 Margin="16,0,16,48" MaxWidth="760">
             <Grid ColumnDefinitions="*,Auto">
-                <SelectableTextBlock Text="{Binding Notification.Message, FallbackValue=''}"
+                <SelectableTextBlock Text="{Binding Notification.Message, FallbackValue=''}" Foreground="#FFFFFF"
                                      TextWrapping="Wrap" VerticalAlignment="Center" />
                 <Button Grid.Column="1" Content="Fermer" Margin="16,0,0,0" VerticalAlignment="Center"
                         Command="{Binding Notification.DismissCommand, FallbackValue={x:Null}}" />
@@ -67,11 +93,13 @@
             <ContentControl Content="{Binding Dialog}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ContentControl.DataTemplates>
                     <DataTemplate DataType="vm:ConfirmDialogViewModel">
-                        <Border Classes="panel" MaxWidth="560" Padding="24">
-                            <StackPanel Spacing="16">
+                        <Border Classes="panel" MaxWidth="560" Padding="24" Background="#F21B2838"
+                                BoxShadow="0 12 40 0 #B3000000">
+                            <StackPanel Spacing="14">
                                 <TextBlock Classes="h2" Text="{Binding Title}" />
+                                <Border Classes="accent-rule" />
                                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
-                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
                                     <Button Content="Annuler" Command="{Binding CancelCommand}" IsDefault="False" />
                                     <Button Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}"
                                             Classes.danger="{Binding IsDestructive}"

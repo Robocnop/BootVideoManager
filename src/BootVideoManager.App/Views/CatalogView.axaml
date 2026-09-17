@@ -16,7 +16,7 @@
         <DataTemplate DataType="vm:PostDetailViewModel">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                    <TextBlock Classes="h2" Text="Aperçu" VerticalAlignment="Center" />
+                    <TextBlock Classes="section" Text="APERÇU" VerticalAlignment="Center" />
                     <Button Grid.Column="1" Content="Fermer" Command="{Binding CloseCommand}" />
                 </Grid>
                 <ScrollViewer>
@@ -44,7 +44,8 @@
                         <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                 Content="Voir sur steamdeckrepo.com" Command="{Binding OpenPageCommand}" />
 
-                        <TextBlock Classes="h3" Text="Description" Margin="0,8,0,0" />
+                        <TextBlock Classes="section" Text="DESCRIPTION" Margin="0,10,0,0" />
+                        <Border Classes="accent-rule" />
                         <SelectableTextBlock Text="{Binding Description}" TextWrapping="Wrap" />
                     </StackPanel>
                 </ScrollViewer>
@@ -52,25 +53,27 @@
         </DataTemplate>
     </UserControl.DataTemplates>
 
-    <Grid RowDefinitions="Auto,Auto,*" Margin="0,12,0,0">
-        <WrapPanel Classes="filters">
-            <TextBox Width="250" PlaceholderText="Rechercher un titre ou un auteur…" Text="{Binding SearchText}"
-                     AutomationProperties.Name="Rechercher" />
-            <ComboBox Width="170" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}"
-                      AutomationProperties.Name="Tri" />
-            <ComboBox Width="185" ItemsSource="{Binding TypeOptions}" SelectedItem="{Binding SelectedType}"
-                      AutomationProperties.Name="Type de vidéo" />
-            <ComboBox Width="160" ItemsSource="{Binding DeviceOptions}" SelectedItem="{Binding SelectedDevice}"
-                      AutomationProperties.Name="Appareil" />
-            <ComboBox Width="180" ItemsSource="{Binding DurationOptions}" SelectedItem="{Binding SelectedDuration}"
-                      AutomationProperties.Name="Durée" />
-            <Button Content="Réinitialiser" Command="{Binding ResetFiltersCommand}" />
-            <Button Content="Actualiser" Command="{Binding RefreshCommand}" />
-        </WrapPanel>
+    <Grid RowDefinitions="Auto,Auto,*" Margin="0,16,0,0">
+        <Border Classes="toolbar" Margin="0,0,0,10">
+            <WrapPanel Classes="filters">
+                <TextBox Width="250" PlaceholderText="Rechercher un titre ou un auteur…" Text="{Binding SearchText}"
+                         AutomationProperties.Name="Rechercher" />
+                <ComboBox Width="170" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}"
+                          AutomationProperties.Name="Tri" />
+                <ComboBox Width="185" ItemsSource="{Binding TypeOptions}" SelectedItem="{Binding SelectedType}"
+                          AutomationProperties.Name="Type de vidéo" />
+                <ComboBox Width="160" ItemsSource="{Binding DeviceOptions}" SelectedItem="{Binding SelectedDevice}"
+                          AutomationProperties.Name="Appareil" />
+                <ComboBox Width="180" ItemsSource="{Binding DurationOptions}" SelectedItem="{Binding SelectedDuration}"
+                          AutomationProperties.Name="Durée" />
+                <Button Content="Réinitialiser" Command="{Binding ResetFiltersCommand}" />
+                <Button Content="Actualiser" Command="{Binding RefreshCommand}" />
+            </WrapPanel>
+        </Border>
 
         <StackPanel Grid.Row="1" Spacing="8" Margin="0,0,0,8">
             <StackPanel Orientation="Horizontal" Spacing="16">
-                <TextBlock Classes="h3" Text="{Binding ResultText}" />
+                <TextBlock Classes="h2" Text="{Binding ResultText}" />
                 <TextBlock Classes="muted small" Text="{Binding StatusText}" VerticalAlignment="Center" />
             </StackPanel>
             <Border Classes="banner-error" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
@@ -96,20 +99,20 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="vm:PostCardViewModel">
-                                <Border Classes="card" Width="236" Margin="0,0,12,12">
+                                <Border Classes="card tile" Width="232" Margin="0,4,12,12">
                                     <StackPanel>
                                         <Button Classes="thumbnail" Command="{Binding OpenDetailCommand}"
                                                 ToolTip.Tip="Aperçu et détails"
                                                 AutomationProperties.Name="{Binding PreviewAutomationName}">
                                             <Panel Height="148">
                                                 <Border Background="{StaticResource SurfaceRaisedBrush}" />
-                                                <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                <Image Classes="thumb" Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                                                 <Border Classes="badge" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6">
                                                     <TextBlock Text="{Binding DurationText}" />
                                                 </Border>
                                                 <Border Classes="badge installed" IsVisible="{Binding IsInstalled}"
                                                         HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6">
-                                                    <TextBlock Text="Installée" />
+                                                    <TextBlock Text="INSTALLÉE" />
                                                 </Border>
                                             </Panel>
                                         </Button>
@@ -144,7 +147,7 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <Border Grid.Column="1" Classes="panel" Width="440" Margin="12,0,0,12"
+            <Border Grid.Column="1" Classes="detail" Width="440" Margin="14,0,0,14"
                     IsVisible="{Binding SelectedPost, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <ContentControl Content="{Binding SelectedPost}" />
             </Border>

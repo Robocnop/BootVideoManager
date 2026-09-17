@@ -23,7 +23,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
         Installed = new InstalledViewModel(_installs, services.Thumbnails, platform);
         Settings = new SettingsViewModel(services.SteamLocator, services.Settings, _installs, platform, this);
 
-        _installs.InstalledChanged += (_, _) => OnPropertyChanged(nameof(InstalledTabHeader));
+        _installs.InstalledChanged += (_, _) => OnPropertyChanged(nameof(InstalledCount));
         _installs.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(InstallCoordinator.Steam))
@@ -40,7 +40,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
     public SettingsViewModel Settings { get; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsCatalogTab), nameof(IsInstalledTab), nameof(IsSettingsTab))]
     public partial int SelectedTabIndex { get; set; }
+
+    public bool IsCatalogTab => SelectedTabIndex == 0;
+
+    public bool IsInstalledTab => SelectedTabIndex == 1;
+
+    public bool IsSettingsTab => SelectedTabIndex == SettingsTabIndex;
 
     [ObservableProperty]
     public partial ConfirmDialogViewModel? Dialog { get; set; }
@@ -52,7 +59,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
         ? $"Steam : {steam.RootPath}"
         : "Steam introuvable : indiquez son dossier dans l'onglet Réglages";
 
-    public string InstalledTabHeader => $"Installées ({_installs.Installed.Count})";
+    public int InstalledCount => _installs.Installed.Count;
 
     /// <summary>Resolves the Steam folder, then loads the installed videos and the catalog in parallel.</summary>
     /// <param name="steamRootOverride">Optional <c>--steam-root</c> value.</param>
