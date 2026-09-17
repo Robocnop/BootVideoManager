@@ -45,7 +45,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     public ObservableCollection<SteamChoice> Detected { get; } = [];
 
-    public string CurrentRoot => _installs.Steam?.RootPath ?? "Aucun dossier Steam sélectionné";
+    public string CurrentRoot => _installs.Steam?.RootPath ?? "Aucun dossier Steam n'est sélectionné";
 
     public string CurrentMoviesDirectory => _installs.Steam?.MoviesDirectory ?? "—";
 
@@ -73,7 +73,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
                 return true;
             }
 
-            _notifier.ShowError($"--steam-root ignoré : « {commandLineRoot} » n'est pas un dossier Steam.");
+            _notifier.ShowError($"Option --steam-root ignorée : « {commandLineRoot} » n'est pas un dossier Steam.");
         }
 
         var saved = _settingsStore.Load().SteamRootOverride;
@@ -86,7 +86,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
                 return true;
             }
 
-            _notifier.ShowError($"Le dossier Steam enregistré n'est plus valide : {saved}. Détection automatique utilisée.");
+            _notifier.ShowError($"Le dossier Steam enregistré n'est plus valide ({saved}) : la détection automatique a pris le relais.");
         }
 
         _installs.Steam = Detected.FirstOrDefault()?.Installation;
@@ -121,7 +121,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
         if (_locator.TryCreateManual(path) is not { } installation)
         {
-            ValidationMessage = "Ce dossier ne ressemble pas à une installation Steam (aucun dossier « config » ou « steamapps »).";
+            ValidationMessage = "Ce dossier ne semble pas contenir d'installation Steam (ni dossier « config » ni dossier « steamapps »).";
             return;
         }
 
@@ -140,7 +140,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _notifier.ShowError($"Le choix n'a pas pu être enregistré pour les prochains lancements : {ex.Message}");
+            _notifier.ShowError($"Impossible d'enregistrer ce choix pour les prochains lancements : {ex.Message}");
         }
 
         _installs.Steam = installation;
@@ -150,11 +150,11 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     private static string KindLabel(SteamInstallKind kind) => kind switch
     {
-        SteamInstallKind.Registry => "Détecté via le registre Windows",
+        SteamInstallKind.Registry => "Détectée dans le registre Windows",
         SteamInstallKind.DefaultLocation => "Emplacement par défaut",
         SteamInstallKind.Native => "Installation Linux / Steam Deck",
         SteamInstallKind.Flatpak => "Flatpak",
         SteamInstallKind.Snap => "Snap",
-        _ => "Choisi manuellement",
+        _ => "Choisie manuellement",
     };
 }

@@ -53,15 +53,15 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
     public IReadOnlyList<Choice<CatalogSort>> SortOptions { get; } =
     [
         new("Tendances", CatalogSort.Trending),
-        new("Plus téléchargées", CatalogSort.MostDownloaded),
-        new("Plus aimées", CatalogSort.MostLiked),
-        new("Plus récentes", CatalogSort.Newest),
-        new("Plus anciennes", CatalogSort.Oldest),
+        new("Les plus téléchargées", CatalogSort.MostDownloaded),
+        new("Les plus aimées", CatalogSort.MostLiked),
+        new("Les plus récentes", CatalogSort.Newest),
+        new("Les plus anciennes", CatalogSort.Oldest),
     ];
 
     public IReadOnlyList<Choice<VideoType?>> TypeOptions { get; } =
     [
-        new("Démarrage et veille", null),
+        new("Tous les types", null),
         new("Vidéos de démarrage", VideoType.BootVideo),
         new("Animations de veille", VideoType.SuspendVideo),
     ];
@@ -76,7 +76,7 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
     public IReadOnlyList<Choice<DurationRange>> DurationOptions { get; } =
     [
         new("Toutes les durées", new DurationRange(null, null)),
-        new("Courtes (10 s max)", new DurationRange(null, 10)),
+        new("Courtes (10 s ou moins)", new DurationRange(null, 10)),
         new("Moyennes (11 à 30 s)", new DurationRange(11, 30)),
         new("Longues (plus de 30 s)", new DurationRange(31, null)),
     ];
@@ -125,9 +125,9 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
         {
             _snapshot = await _catalog.LoadAsync(forceRefresh);
             WarningMessage = _snapshot.RefreshError is { } refreshError
-                ? string.Create(CultureInfo.CurrentCulture, $"Catalogue hors ligne (dernière mise à jour : {_snapshot.FetchedAt.LocalDateTime:g}). {UserMessages.For(refreshError)}")
+                ? string.Create(CultureInfo.CurrentCulture, $"Catalogue hors ligne (dernière mise à jour le {_snapshot.FetchedAt.LocalDateTime:g}). {UserMessages.For(refreshError)}")
                 : null;
-            StatusText = string.Create(CultureInfo.CurrentCulture, $"Catalogue du {_snapshot.FetchedAt.LocalDateTime:g}");
+            StatusText = string.Create(CultureInfo.CurrentCulture, $"Catalogue mis à jour le {_snapshot.FetchedAt.LocalDateTime:g}");
             ApplyQuery();
         }
         catch (RepoApiException ex)

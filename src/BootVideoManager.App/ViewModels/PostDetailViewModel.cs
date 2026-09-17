@@ -12,7 +12,7 @@ public sealed partial class PostDetailViewModel(PostCardViewModel card, IPlatfor
     /// <summary>The exact file that would be installed, so the preview matches the result.</summary>
     public Uri PreviewUri => Card.Post.VideoUri;
 
-    public string Description => string.IsNullOrWhiteSpace(Card.Post.Description) ? "Pas de description." : Card.Post.Description;
+    public string Description => string.IsNullOrWhiteSpace(Card.Post.Description) ? "Aucune description." : Card.Post.Description;
 
     public string UploadedText => string.Create(CultureInfo.CurrentCulture, $"Publiée le {Card.Post.CreatedAt.LocalDateTime:d}");
 

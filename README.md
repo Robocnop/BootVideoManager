@@ -47,8 +47,9 @@ Application desktop multiplateforme (Windows, Linux / Steam Deck) en C# / .NET 1
 
 ### Windows
 
-1. Téléchargez `BootVideoManager-<version>-win-x64.zip` (ou générez-le, voir [Build](#build)).
-2. Décompressez-le où vous voulez et lancez `BootVideoManager.exe`. Aucun runtime .NET n'est nécessaire.
+1. Téléchargez `BootVideoManager-<version>-win-x64.exe` (ou générez-le, voir [Build](#build)).
+2. Placez-le où vous voulez et lancez-le : c'est un exécutable unique qui contient tout (runtime .NET, DLL et
+   composants VLC). Au premier lancement, ses bibliothèques natives sont extraites dans `%TEMP%\.net`.
 
 ### Linux / Steam Deck (mode Bureau)
 

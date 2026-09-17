@@ -139,7 +139,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Content="Afficher plus" HorizontalAlignment="Center" Margin="0,4,0,24"
+                    <Button Content="Afficher davantage" HorizontalAlignment="Center" Margin="0,4,0,24"
                             IsVisible="{Binding CanLoadMore}" Command="{Binding LoadMoreCommand}" />
                 </StackPanel>
             </ScrollViewer>

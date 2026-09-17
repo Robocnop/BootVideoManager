@@ -3,8 +3,8 @@
     Runs the tests, then builds self-contained release archives of Boot Video Manager.
 
 .DESCRIPTION
-    Each runtime is published to artifacts/publish/<rid> and archived next to it
-    (.zip for Windows, .tar.gz for Linux). No .NET runtime is needed on the target machine.
+    Each runtime is published to artifacts/publish/<rid>; Windows yields a single .exe next to it,
+    Linux a .tar.gz. No .NET runtime is needed on the target machine.
 
 .EXAMPLE
     ./build/publish.ps1
@@ -37,8 +37,9 @@ foreach ($rid in $Runtime) {
 
     $archive = Join-Path $output "BootVideoManager-$version-$rid"
     if ($rid -like 'win-*') {
-        Compress-Archive -Path (Join-Path $dir '*') -DestinationPath "$archive.zip" -Force
-        Write-Host "Created $archive.zip"
+        # Single-file publish (see the App .csproj): the .exe alone is the whole application.
+        Copy-Item (Join-Path $dir 'BootVideoManager.exe') "$archive.exe" -Force
+        Write-Host "Created $archive.exe"
     }
     else {
         # Built on Windows the executable bit is lost: run `chmod +x BootVideoManager` after extracting,

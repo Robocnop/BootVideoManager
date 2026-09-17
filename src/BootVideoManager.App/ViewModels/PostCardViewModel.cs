@@ -37,7 +37,7 @@ public sealed partial class PostCardViewModel : ViewModelBase
     public string PreviewAutomationName => $"Aperçu : {Post.Title}";
 
     /// <summary>Authors are always credited.</summary>
-    public string AuthorText => string.IsNullOrWhiteSpace(Post.Author.Name) ? "par un auteur inconnu" : $"par {Post.Author.Name}";
+    public string AuthorText => string.IsNullOrWhiteSpace(Post.Author.Name) ? "auteur inconnu" : $"par {Post.Author.Name}";
 
     public string DurationText => Post.Duration is { } duration
         ? duration.TotalSeconds < 60
@@ -47,7 +47,7 @@ public sealed partial class PostCardViewModel : ViewModelBase
 
     public string StatsText => string.Create(
         CultureInfo.CurrentCulture,
-        $"{Post.Likes:N0} j'aime · {Post.Downloads:N0} téléchargements");
+        $"{Post.Likes:N0} j'aime · {Post.Downloads:N0} {(Post.Downloads > 1 ? "téléchargements" : "téléchargement")}");
 
     public string TagsText => string.Join(
         " · ",

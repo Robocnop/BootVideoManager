@@ -112,19 +112,19 @@ public sealed class InstallService : IDisposable
 
         if (!sourcePath.EndsWith(VideoFileNames.Extension, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InstallException(InstallErrorKind.InvalidFile, "Steam only plays .webm files.");
+            throw new InstallException(InstallErrorKind.InvalidFile, "Steam ne lit que les fichiers .webm.");
         }
 
         if (!_fileSystem.File.Exists(sourcePath))
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "The selected file does not exist.");
+            throw new InstallException(InstallErrorKind.FileSystem, "Le fichier sélectionné n'existe pas.");
         }
 
         EnsureDirectory(directory);
         var partPath = NewPartPath(directory, "import.webm");
         try
         {
-            var (sha256, size) = await CopyLocalFileAsync(sourcePath, partPath, "The selected file could not be read.", cancellationToken).ConfigureAwait(false);
+            var (sha256, size) = await CopyLocalFileAsync(sourcePath, partPath, "Impossible de lire le fichier sélectionné.", cancellationToken).ConfigureAwait(false);
 
             var fileName = VideoFileNames.ForLocalImport(_fileSystem.Path.GetFileName(sourcePath), sha256);
             if (await GetTrackedOrThrowIfConflictAsync(directory, fileName, cancellationToken).ConfigureAwait(false) is { } existing)
@@ -312,7 +312,7 @@ public sealed class InstallService : IDisposable
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                throw new InstallException(InstallErrorKind.FileSystem, $"Could not delete \"{fileName}\". Is Steam playing it?", ex);
+                throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de supprimer « {fileName} ». Steam est peut-être en train de la lire.", ex);
             }
 
             if (entry is not null)
@@ -342,7 +342,7 @@ public sealed class InstallService : IDisposable
         ArgumentNullException.ThrowIfNull(video);
         if (video.IsBuiltIn || video.IsSteamShopItem)
         {
-            throw new InstallException(InstallErrorKind.FileConflict, $"\"{video.FileName}\" is managed by Steam and cannot be deleted.");
+            throw new InstallException(InstallErrorKind.FileConflict, $"« {video.FileName} » est gérée par Steam et ne peut pas être supprimée.");
         }
 
         if (!video.IsInSteamCache)
@@ -372,7 +372,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"Could not delete \"{video.FileName}\". Is Steam playing it?", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de supprimer « {video.FileName} ». Steam est peut-être en train de la lire.", ex);
         }
 
         return UninstallOutcome.Deleted;
@@ -453,7 +453,7 @@ public sealed class InstallService : IDisposable
             }
             else if (await UninstallAsync(directory, copyName, userConfirmed: false, cancellationToken).ConfigureAwait(false) == UninstallOutcome.RequiresConfirmation)
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"\"{copyName}\" was modified outside the application; delete it from the list instead.");
+                throw new InstallException(InstallErrorKind.FileConflict, $"« {copyName} » a été modifiée en dehors de l'application : supprimez-la plutôt depuis la liste.");
             }
 
             return;
@@ -461,7 +461,7 @@ public sealed class InstallService : IDisposable
 
         if (video.IsSteamShopItem)
         {
-            throw new InstallException(InstallErrorKind.FileConflict, $"\"{video.FileName}\" is a Steam Points Shop item: manage it in Steam's Customization settings.");
+            throw new InstallException(InstallErrorKind.FileConflict, $"« {video.FileName} » provient de la Boutique des points Steam : gérez-la depuis Steam › Paramètres › Personnalisation.");
         }
 
         // Videos of Steam's startup movie cache are disabled next to that cache, the others next to the movies folder.
@@ -482,12 +482,12 @@ public sealed class InstallService : IDisposable
 
             if (!sourceExists)
             {
-                throw new InstallException(InstallErrorKind.FileSystem, $"\"{video.FileName}\" no longer exists.");
+                throw new InstallException(InstallErrorKind.FileSystem, $"« {video.FileName} » n'existe plus.");
             }
 
             if (targetExists)
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"\"{video.FileName}\" exists both in its folder and in the matching disabled folder.");
+                throw new InstallException(InstallErrorKind.FileConflict, $"« {video.FileName} » se trouve à la fois dans son dossier et dans le dossier des vidéos désactivées.");
             }
 
             EnsureDirectory(_fileSystem.Path.GetDirectoryName(to)!);
@@ -518,12 +518,12 @@ public sealed class InstallService : IDisposable
             }
 
             var entry = FindEntry(LoadManifest(), directory, fileName)
-                ?? throw new InstallException(InstallErrorKind.FileConflict, $"\"{fileName}\" already exists and was not added by this application.");
+                ?? throw new InstallException(InstallErrorKind.FileConflict, $"« {fileName} » existe déjà et n'a pas été ajoutée par cette application.");
 
             var (status, current) = await VerifyAsync(entry, existingPath, cancellationToken).ConfigureAwait(false);
             if (status != InstalledVideoStatus.Tracked)
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"\"{fileName}\" was modified outside the application.");
+                throw new InstallException(InstallErrorKind.FileConflict, $"« {fileName} » a été modifiée en dehors de l'application.");
             }
 
             if (existingPath != path)
@@ -543,7 +543,7 @@ public sealed class InstallService : IDisposable
     private async Task EnableBuiltInAsync(string directory, string builtInFileName, CancellationToken cancellationToken)
     {
         var builtInDirectory = BuiltInVideos.DirectoryFor(_fileSystem, directory)
-            ?? throw new InstallException(InstallErrorKind.FileSystem, "Steam's own animations folder could not be located.");
+            ?? throw new InstallException(InstallErrorKind.FileSystem, "Impossible de trouver le dossier des animations d'origine de Steam.");
         var copyName = BuiltInVideos.CopyFileName(builtInFileName);
 
         if (await GetTrackedOrThrowIfConflictAsync(directory, copyName, cancellationToken).ConfigureAwait(false) is not null)
@@ -558,7 +558,7 @@ public sealed class InstallService : IDisposable
             var (sha256, size) = await CopyLocalFileAsync(
                 _fileSystem.Path.Combine(builtInDirectory, builtInFileName),
                 partPath,
-                $"Steam's animation \"{builtInFileName}\" could not be read.",
+                $"Impossible de lire l'animation de Steam « {builtInFileName} ».",
                 cancellationToken).ConfigureAwait(false);
 
             var entry = new ManifestEntry
@@ -605,11 +605,11 @@ public sealed class InstallService : IDisposable
         }
         catch (HttpRequestException ex)
         {
-            throw new InstallException(InstallErrorKind.Download, "Could not reach the download server.", ex);
+            throw new InstallException(InstallErrorKind.Download, "Impossible de joindre le serveur de téléchargement.", ex);
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new InstallException(InstallErrorKind.Download, "The download server did not answer in time.", ex);
+            throw new InstallException(InstallErrorKind.Download, "Le serveur de téléchargement n'a pas répondu à temps.", ex);
         }
 
         using (response)
@@ -619,14 +619,14 @@ public sealed class InstallService : IDisposable
                 throw new InstallException(
                     InstallErrorKind.Download,
                     response.StatusCode == HttpStatusCode.TooManyRequests
-                        ? "Too many downloads in a short time. Try again in a minute."
-                        : $"The download server answered HTTP {(int)response.StatusCode}.");
+                        ? "Trop de téléchargements en peu de temps. Réessayez dans une minute."
+                        : $"Le serveur de téléchargement a répondu par une erreur HTTP {(int)response.StatusCode}.");
             }
 
             var expectedLength = response.Content.Headers.ContentLength;
             if (expectedLength > MaxVideoBytes)
             {
-                throw new InstallException(InstallErrorKind.InvalidFile, "The video is unreasonably large.");
+                throw new InstallException(InstallErrorKind.InvalidFile, "La vidéo est anormalement volumineuse.");
             }
 
             try
@@ -636,7 +636,7 @@ public sealed class InstallService : IDisposable
             }
             catch (Exception ex) when (ex is HttpRequestException or IOException)
             {
-                throw new InstallException(InstallErrorKind.Download, "The download was interrupted.", ex);
+                throw new InstallException(InstallErrorKind.Download, "Le téléchargement a été interrompu.", ex);
             }
         }
     }
@@ -676,7 +676,7 @@ public sealed class InstallService : IDisposable
                 total += read;
                 if (total > MaxVideoBytes)
                 {
-                    throw new InstallException(InstallErrorKind.InvalidFile, "The video is unreasonably large.");
+                    throw new InstallException(InstallErrorKind.InvalidFile, "La vidéo est anormalement volumineuse.");
                 }
 
                 await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
@@ -696,12 +696,12 @@ public sealed class InstallService : IDisposable
 
         if (expectedLength is { } expected && expected != total)
         {
-            throw new InstallException(InstallErrorKind.Download, "The download is incomplete.");
+            throw new InstallException(InstallErrorKind.Download, "Le téléchargement est incomplet.");
         }
 
         return (Convert.ToHexStringLower(hash.GetHashAndReset()), total);
 
-        static InstallException NotWebm() => new(InstallErrorKind.InvalidFile, "The file is not a WebM video.");
+        static InstallException NotWebm() => new(InstallErrorKind.InvalidFile, "Ce fichier n'est pas une vidéo WebM.");
     }
 
     /// <summary>Moves the verified file into place and records it; rolls the file back if the manifest cannot be saved.</summary>
@@ -714,7 +714,7 @@ public sealed class InstallService : IDisposable
         {
             if (_fileSystem.File.Exists(targetPath))
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"\"{entry.FileName}\" appeared in the movies folder during the download.");
+                throw new InstallException(InstallErrorKind.FileConflict, $"« {entry.FileName} » est apparue dans le dossier des vidéos pendant le téléchargement.");
             }
 
             try
@@ -723,7 +723,7 @@ public sealed class InstallService : IDisposable
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                throw new InstallException(InstallErrorKind.FileSystem, "The video could not be placed in the movies folder.", ex);
+                throw new InstallException(InstallErrorKind.FileSystem, "Impossible de placer la vidéo dans le dossier des vidéos.", ex);
             }
 
             var committed = entry with
@@ -776,7 +776,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"\"{entry.FileName}\" could not be read.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de lire « {entry.FileName} ».", ex);
         }
 
         return string.Equals(sha256, entry.Sha256, StringComparison.OrdinalIgnoreCase)
@@ -797,13 +797,13 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "The movies folder could not be read.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, "Impossible de lire le dossier des vidéos.", ex);
         }
     }
 
     private string SteamCacheDirectory(string directory) =>
         BuiltInVideos.SteamCacheDirectoryFor(_fileSystem, directory)
-        ?? throw new InstallException(InstallErrorKind.FileSystem, "Steam's startup movie cache could not be located.");
+        ?? throw new InstallException(InstallErrorKind.FileSystem, "Impossible de trouver le cache des vidéos de démarrage de Steam.");
 
     /// <summary>Path of <paramref name="fileName"/> in <paramref name="directory"/>, else in its disabled folder; <c>null</c> if in neither.</summary>
     private string? FindVideoFile(string directory, string fileName) =>
@@ -819,7 +819,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"Could not move \"{_fileSystem.Path.GetFileName(from)}\". Is Steam playing it?", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de déplacer « {_fileSystem.Path.GetFileName(from)} ». Steam est peut-être en train de la lire.", ex);
         }
     }
 
@@ -831,7 +831,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "The install manifest could not be read.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, "Impossible de lire le registre des installations.", ex);
         }
     }
 
@@ -843,7 +843,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "The install manifest could not be saved.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, "Impossible d'enregistrer le registre des installations.", ex);
         }
     }
 
@@ -861,7 +861,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"The movies folder could not be created: {directory}", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de créer le dossier des vidéos : {directory}", ex);
         }
     }
 

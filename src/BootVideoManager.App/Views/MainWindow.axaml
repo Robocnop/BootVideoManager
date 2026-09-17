@@ -5,6 +5,7 @@
         x:Class="BootVideoManager.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Boot Video Manager"
+        Icon="/Assets/app-icon.png"
         Width="1280" Height="800" MinWidth="960" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource AppBackgroundBrush}">
@@ -18,6 +19,7 @@
             <Border DockPanel.Dock="Top" Classes="header">
                 <Grid ColumnDefinitions="Auto,*">
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Image Source="/Assets/app-icon.png" Width="32" Height="32" VerticalAlignment="Center" />
                         <TextBlock Classes="app-title" Text="Boot Video Manager" />
                         <TextBlock Classes="muted" VerticalAlignment="Center" Text="Vidéos de démarrage pour Steam Big Picture et Steam Deck" />
                     </StackPanel>
@@ -29,7 +31,7 @@
 
             <Border DockPanel.Dock="Bottom" Classes="footer">
                 <TextBlock Classes="muted small" TextTrimming="CharacterEllipsis"
-                           Text="Catalogue et vidéos : steamdeckrepo.com. Chaque vidéo appartient à son auteur. Application non officielle, sans lien avec Valve ni steamdeckrepo.com." />
+                           Text="Catalogue et vidéos fournis par steamdeckrepo.com. Chaque vidéo appartient à son auteur. Application non officielle, sans lien avec Valve ni avec steamdeckrepo.com." />
             </Border>
 
             <TabControl SelectedIndex="{Binding SelectedTabIndex}" Padding="16,4,16,0">

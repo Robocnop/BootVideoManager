@@ -50,7 +50,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
 
     public string SteamText => _installs.Steam is { } steam
         ? $"Steam : {steam.RootPath}"
-        : "Steam introuvable : choisissez son dossier dans Réglages";
+        : "Steam introuvable : indiquez son dossier dans l'onglet Réglages";
 
     public string InstalledTabHeader => $"Installées ({_installs.Installed.Count})";
 

@@ -22,8 +22,9 @@ for rid in "${runtimes[@]}"; do
 
   archive="$output/BootVideoManager-$version-$rid"
   if [[ "$rid" == win-* ]]; then
-    (cd "$dir" && zip -qr "$archive.zip" .)
-    echo "Created $archive.zip"
+    # Single-file publish (see the App .csproj): the .exe alone is the whole application.
+    cp "$dir/BootVideoManager.exe" "$archive.exe"
+    echo "Created $archive.exe"
   else
     chmod +x "$dir/BootVideoManager"
     tar -czf "$archive.tar.gz" -C "$dir" .

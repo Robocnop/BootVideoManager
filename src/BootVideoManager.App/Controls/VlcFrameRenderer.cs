@@ -28,8 +28,8 @@ public static class VlcRuntime
                 catch (Exception ex) when (ex is VLCException or DllNotFoundException or TypeInitializationException or BadImageFormatException or EntryPointNotFoundException)
                 {
                     _error = OperatingSystem.IsWindows()
-                        ? "Aperçu indisponible : les composants VLC n'ont pas pu être chargés."
-                        : "Aperçu indisponible : libvlc est introuvable. Installez VLC avec le gestionnaire de paquets de votre système, ou utilisez la version Flatpak de l'application.";
+                        ? "Aperçu indisponible : impossible de charger les composants de VLC."
+                        : "Aperçu indisponible : libvlc est introuvable. Installez VLC avec le gestionnaire de paquets de votre système ou utilisez la version Flatpak de l'application.";
                     Console.Error.WriteLine(ex);
                 }
             }

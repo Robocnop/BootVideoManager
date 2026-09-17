@@ -57,14 +57,14 @@ public sealed partial class InstallCoordinator : ObservableObject
     {
         if (Steam is null)
         {
-            _notifier.ShowError("Aucun dossier Steam sélectionné. Choisissez-le dans l'onglet Réglages.");
+            _notifier.ShowError("Aucun dossier Steam n'est sélectionné. Choisissez-le dans l'onglet Réglages.");
             return false;
         }
 
         try
         {
             await _install.InstallAsync(post, Steam.MoviesDirectory, progress, cancellationToken);
-            _notifier.ShowInfo($"« {post.Title} » est installée. Activez-la dans Steam › Paramètres › Personnalisation.");
+            _notifier.ShowInfo($"« {post.Title} » est installée. Sélectionnez-la dans Steam › Paramètres › Personnalisation.");
             return true;
         }
         catch (InstallException ex)
@@ -102,11 +102,11 @@ public sealed partial class InstallCoordinator : ObservableObject
                 var reason = video switch
                 {
                     { Status: InstalledVideoStatus.Modified } => $"« {video.DisplayTitle} » a été modifiée depuis son installation.",
-                    { IsInSteamCache: true } => $"« {video.FileName} » se trouve dans le cache des vidéos de démarrage de Steam et n'a pas été installée par cette application.\nAstuce : la désactiver la retire aussi de la lecture aléatoire, sans la supprimer.",
-                    _ => $"« {video.FileName} » n'a pas été installée par cette application (ajout manuel ou autre outil).",
+                    { IsInSteamCache: true } => $"« {video.FileName} » se trouve dans le cache des vidéos de démarrage de Steam et n'a pas été installée par cette application.\nAstuce : pour la retirer de la lecture aléatoire sans la supprimer, désactivez-la simplement.",
+                    _ => $"« {video.FileName} » n'a pas été installée par cette application (ajout manuel ou par un autre outil).",
                 };
 
-                if (!await _dialogs.ConfirmAsync("Supprimer ce fichier ?", $"{reason}\nLa supprimer quand même ?", "Supprimer", destructive: true))
+                if (!await _dialogs.ConfirmAsync("Supprimer ce fichier ?", $"{reason}\nLa supprimer malgré tout ?", "Supprimer", destructive: true))
                 {
                     return;
                 }
@@ -116,7 +116,7 @@ public sealed partial class InstallCoordinator : ObservableObject
 
             if (outcome == UninstallOutcome.Deleted)
             {
-                _notifier.ShowInfo($"« {video.DisplayTitle} » a été retirée.");
+                _notifier.ShowInfo($"« {video.DisplayTitle} » a été supprimée.");
             }
         }
         catch (InstallException ex)
@@ -172,9 +172,16 @@ public sealed partial class InstallCoordinator : ObservableObject
         {
             if (tracked > 0)
             {
-                var message = others == 0
-                    ? $"Retirer les {tracked} vidéo(s) installées par l'application ?"
-                    : $"Retirer les {tracked} vidéo(s) installées par l'application ?\nLes {others} autre(s) fichier(s) seront traités ensuite, avec une confirmation séparée.";
+                var message = tracked == 1
+                    ? "Supprimer la vidéo installée par l'application ?"
+                    : $"Supprimer les {tracked} vidéos installées par l'application ?";
+                if (others > 0)
+                {
+                    message += others == 1
+                        ? "\nL'autre fichier sera traité ensuite, avec une confirmation distincte."
+                        : $"\nLes {others} autres fichiers seront traités ensuite, avec une confirmation distincte.";
+                }
+
                 if (!await _dialogs.ConfirmAsync("Tout retirer", message, "Tout retirer", destructive: true))
                 {
                     return;
@@ -188,7 +195,9 @@ public sealed partial class InstallCoordinator : ObservableObject
 
             if (others > 0 && await _dialogs.ConfirmAsync(
                     "Fichiers ajoutés hors de l'application",
-                    $"{others} fichier(s) du dossier n'ont pas été installés par cette application ou ont été modifiés.\nLes supprimer aussi ?",
+                    others == 1
+                        ? "Un fichier du dossier n'a pas été installé par cette application ou a été modifié.\nLe supprimer aussi ?"
+                        : $"{others} fichiers du dossier n'ont pas été installés par cette application ou ont été modifiés.\nLes supprimer aussi ?",
                     "Supprimer aussi",
                     destructive: true))
             {
@@ -197,13 +206,14 @@ public sealed partial class InstallCoordinator : ObservableObject
                 failed.AddRange(result.Failed);
             }
 
+            var deletedText = deleted > 1 ? $"{deleted} vidéos supprimées." : $"{deleted} vidéo supprimée.";
             if (failed.Count > 0)
             {
-                _notifier.ShowError($"{deleted} vidéo(s) retirée(s). Impossible de supprimer : {string.Join(", ", failed)} (Steam les utilise peut-être).");
+                _notifier.ShowError($"{deletedText} Impossible de supprimer : {string.Join(", ", failed)} (Steam est peut-être en train de les lire).");
             }
             else if (deleted > 0)
             {
-                _notifier.ShowInfo($"{deleted} vidéo(s) retirée(s).");
+                _notifier.ShowInfo(deletedText);
             }
         }
         catch (InstallException ex)
@@ -220,14 +230,14 @@ public sealed partial class InstallCoordinator : ObservableObject
     {
         if (Steam is null)
         {
-            _notifier.ShowError("Aucun dossier Steam sélectionné. Choisissez-le dans l'onglet Réglages.");
+            _notifier.ShowError("Aucun dossier Steam n'est sélectionné. Choisissez-le dans l'onglet Réglages.");
             return;
         }
 
         try
         {
             var video = await _install.ImportLocalFileAsync(path, Steam.MoviesDirectory);
-            _notifier.ShowInfo($"« {video.DisplayTitle} » a été importée. Activez-la dans Steam › Paramètres › Personnalisation.");
+            _notifier.ShowInfo($"« {video.DisplayTitle} » a été importée. Sélectionnez-la dans Steam › Paramètres › Personnalisation.");
         }
         catch (InstallException ex)
         {

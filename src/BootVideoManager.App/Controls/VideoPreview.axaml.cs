@@ -155,7 +155,7 @@ public partial class VideoPreview : UserControl
     {
         if (_renderer is { } renderer)
         {
-            MuteButton.Content = renderer.ToggleMute() ? "Activer le son" : "Couper le son";
+            MuteButton.Content = renderer.ToggleMute() ? "Rétablir le son" : "Couper le son";
         }
     }
 }

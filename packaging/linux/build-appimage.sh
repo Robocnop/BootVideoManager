@@ -18,7 +18,7 @@ command -v appimagetool >/dev/null || { echo "appimagetool not found on PATH" >&
 
 rm -rf "$appdir"
 mkdir -p "$appdir/usr/bin" "$appdir/usr/lib/boot-video-manager" \
-         "$appdir/usr/share/applications" "$appdir/usr/share/icons/hicolor/scalable/apps"
+         "$appdir/usr/share/applications" "$appdir/usr/share/icons/hicolor/512x512/apps"
 
 dotnet publish "$app" -c Release -r linux-x64 --self-contained -o "$appdir/usr/lib/boot-video-manager"
 chmod +x "$appdir/usr/lib/boot-video-manager/BootVideoManager"
@@ -26,8 +26,8 @@ ln -s ../lib/boot-video-manager/BootVideoManager "$appdir/usr/bin/BootVideoManag
 
 cp "$here/boot-video-manager.desktop" "$appdir/usr/share/applications/"
 cp "$here/boot-video-manager.desktop" "$appdir/"
-cp "$here/boot-video-manager.svg" "$appdir/usr/share/icons/hicolor/scalable/apps/"
-cp "$here/boot-video-manager.svg" "$appdir/"
+cp "$here/boot-video-manager.png" "$appdir/usr/share/icons/hicolor/512x512/apps/"
+cp "$here/boot-video-manager.png" "$appdir/"
 
 cat > "$appdir/AppRun" <<'EOF'
 #!/bin/sh

@@ -6,6 +6,7 @@
     <RootNamespace>BootVideoManager.App</RootNamespace>
     <Product>Boot Video Manager</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Video frames are copied straight from libvlc's buffer into the bitmap. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -28,6 +29,20 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <!-- Windows ships as one BootVideoManager.exe: runtime, managed DLLs, native libraries and the VLC plugins are
+       all bundled; native files and VLC plugins are extracted to a cache folder on first launch. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release' And $(RuntimeIdentifier.StartsWith('win'))">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\app-icon.png" />
+  </ItemGroup>
 
   <!-- Native packages (SkiaSharp, HarfBuzz) ship large .pdb files that end users never need. -->
   <Target Name="RemoveNativeSymbolsFromPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">

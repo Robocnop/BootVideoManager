@@ -12,7 +12,7 @@
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Button Content="Actualiser" Command="{Binding RefreshCommand}" />
-                <Button Content="Importer un .webm…" Command="{Binding ImportCommand}" IsEnabled="{Binding HasSteam}" />
+                <Button Content="Importer un fichier .webm…" Command="{Binding ImportCommand}" IsEnabled="{Binding HasSteam}" />
                 <Button Content="Ouvrir le dossier" Command="{Binding OpenFolderCommand}" IsEnabled="{Binding HasSteam}" />
                 <Button Classes="danger" Content="Tout retirer" Command="{Binding RemoveAllCommand}"
                         IsEnabled="{Binding !IsEmpty}" />
@@ -22,7 +22,7 @@
         <StackPanel Grid.Row="1" Spacing="8" Margin="0,12">
             <Border Classes="banner-warning">
                 <TextBlock TextWrapping="Wrap"
-                           Text="L'interrupteur choisit les vidéos que Steam peut jouer, sans rien retélécharger ni supprimer : une vidéo désactivée est rangée dans un dossier « _disabled » voisin, une intro d'origine de Steam activée est copiée dans le dossier des vidéos. Choisissez ensuite dans Steam › Paramètres › Personnalisation, ou activez « Lecture aléatoire » pour tirer au sort parmi les vidéos activées (sur Windows, uniquement au lancement de Big Picture). Les fichiers « Ajoutée hors de l'application » ne sont jamais supprimés sans confirmation." />
+                           Text="L'interrupteur détermine si Steam peut lire chaque vidéo, sans rien retélécharger ni supprimer : une vidéo désactivée est simplement rangée dans un dossier « _disabled » voisin, et une vidéo d'origine de Steam activée est copiée dans le dossier des vidéos. Sélectionnez ensuite la vidéo dans Steam › Paramètres › Personnalisation, ou activez « Lecture aléatoire » pour que Steam choisisse au hasard parmi les vidéos activées (sous Windows, uniquement au lancement de Big Picture). Les fichiers ajoutés en dehors de l'application ne sont jamais supprimés sans confirmation." />
             </Border>
             <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
         </StackPanel>
@@ -31,7 +31,7 @@
             <StackPanel IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
                 <TextBlock Classes="h2" HorizontalAlignment="Center" Text="Aucune vidéo installée" />
                 <TextBlock Classes="muted" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="480"
-                           Text="Parcourez le catalogue pour installer une vidéo de démarrage, ou importez votre propre fichier .webm." />
+                           Text="Parcourez le catalogue pour installer une vidéo de démarrage ou importez votre propre fichier .webm." />
             </StackPanel>
 
             <ScrollViewer IsVisible="{Binding !IsEmpty}">
@@ -59,12 +59,12 @@
                                         </Border>
                                     </StackPanel>
                                     <ToggleSwitch Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Center"
-                                                  OnContent="Peut être jouée" OffContent="Désactivée"
-                                                  ToolTip.Tip="Autoriser Steam à jouer cette vidéo (sans la supprimer)"
+                                                  OnContent="Activée" OffContent="Désactivée"
+                                                  ToolTip.Tip="Autoriser Steam à lire cette vidéo (la désactiver ne la supprime pas)"
                                                   IsVisible="{Binding CanToggle}"
                                                   IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                                   Command="{Binding ToggleEnabledCommand}" />
-                                    <Button Grid.Column="3" Content="Page" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    <Button Grid.Column="3" Content="Voir la page" Margin="0,0,8,0" VerticalAlignment="Center"
                                             IsVisible="{Binding HasPage}" Command="{Binding OpenPageCommand}" />
                                     <Button Grid.Column="4" Content="Supprimer" VerticalAlignment="Center"
                                             IsVisible="{Binding CanDelete}" Command="{Binding RemoveCommand}" />
