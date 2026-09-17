@@ -22,7 +22,7 @@
         <StackPanel Grid.Row="1" Spacing="8" Margin="0,12">
             <Border Classes="banner-warning">
                 <TextBlock TextWrapping="Wrap"
-                           Text="Pour activer une vidéo : Steam › Paramètres › Personnalisation › Vidéo de démarrage (sur Windows, elle ne s'affiche qu'en lançant Big Picture). Les fichiers « Ajoutée hors de l'application » ne sont jamais supprimés sans confirmation." />
+                           Text="L'interrupteur choisit les vidéos que Steam peut jouer, sans rien retélécharger ni supprimer : une vidéo désactivée est rangée dans un dossier « _disabled » voisin, une intro d'origine de Steam activée est copiée dans le dossier des vidéos. Choisissez ensuite dans Steam › Paramètres › Personnalisation, ou activez « Lecture aléatoire » pour tirer au sort parmi les vidéos activées (sur Windows, uniquement au lancement de Big Picture). Les fichiers « Ajoutée hors de l'application » ne sont jamais supprimés sans confirmation." />
             </Border>
             <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
         </StackPanel>
@@ -39,7 +39,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:InstalledItemViewModel">
                             <Border Classes="card" Margin="0,0,8,8" Padding="10">
-                                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
                                     <Border Width="128" Height="80" CornerRadius="6" ClipToBounds="True"
                                             Background="{StaticResource SurfaceRaisedBrush}">
                                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
@@ -58,10 +58,16 @@
                                             <TextBlock Classes="small" Text="{Binding StatusText}" />
                                         </Border>
                                     </StackPanel>
-                                    <Button Grid.Column="2" Content="Page" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    <ToggleSwitch Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                  OnContent="Peut être jouée" OffContent="Désactivée"
+                                                  ToolTip.Tip="Autoriser Steam à jouer cette vidéo (sans la supprimer)"
+                                                  IsVisible="{Binding CanToggle}"
+                                                  IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                                  Command="{Binding ToggleEnabledCommand}" />
+                                    <Button Grid.Column="3" Content="Page" Margin="0,0,8,0" VerticalAlignment="Center"
                                             IsVisible="{Binding HasPage}" Command="{Binding OpenPageCommand}" />
-                                    <Button Grid.Column="3" Content="Supprimer" VerticalAlignment="Center"
-                                            Command="{Binding RemoveCommand}" />
+                                    <Button Grid.Column="4" Content="Supprimer" VerticalAlignment="Center"
+                                            IsVisible="{Binding CanDelete}" Command="{Binding RemoveCommand}" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

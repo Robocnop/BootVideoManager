@@ -17,6 +17,8 @@ Voir [research.md](research.md) pour les constats sur l'API et Steam.
 | Nom de fichier | `{slug}_{id}.webm`, slug assaini | 246 slugs dupliqués dans le catalogue. |
 | Preview | LibVLCSharp, rendu dans un `WriteableBitmap` (callbacks vidéo) | Évite le problème « airspace » du `VideoView` natif (overlays, mode manette). |
 | Tests | xUnit v3 (Microsoft.Testing.Platform) + System.IO.Abstractions.TestingHelpers + FakeTimeProvider | Pas de dépendance à licence commerciale (FluentAssertions ≥ 8) ; .NET 10 impose MTP pour `dotnet test`. |
+| Activer / désactiver | Déplacement vers `uioverrides/movies_disabled/` (dossier voisin, non lu par Steam) ; intros d'origine (`steamui/movies`) activées par copie `steam_default_{nom}.webm` suivie dans le manifeste (`source: SteamBuiltIn`) | La lecture aléatoire de Steam pioche dans tout `uioverrides/movies` : la présence du fichier *est* la sélection. Rien n'est retéléchargé ni supprimé, et on ne touche jamais aux fichiers de Steam. |
+| Cache de Steam | `config/communityitemscache/startupmovies` listé aussi (hors manifeste), désactivation vers `startupmovies_disabled/` ; les objets de la boutique (`{communityitemid}_{sha1}.webm`) sont affichés mais jamais déplacés ni supprimés | Steam y met les intros achetées, mais la lecture aléatoire joue aussi tout `.webm` déposé là à la main : sans ça, des intros « invisibles » passent au démarrage. |
 | Test manuel | Option `--steam-root <dossier>` | Essayer l'application sur une copie sans toucher au vrai dossier Steam. |
 
 ## Couches
@@ -72,7 +74,8 @@ Emplacement : `%APPDATA%\BootVideoManager\manifest.json` (Windows) ou `$XDG_CONF
 Règles :
 - Seuls les fichiers présents dans le manifeste **et** dont le SHA-256 correspond sont supprimés sans confirmation.
 - Fichier modifié ou inconnu du manifeste → confirmation explicite.
-- Entrée dont le fichier a disparu → nettoyée du manifeste à la réconciliation.
+- Entrée dont le fichier a disparu (ni dans `movies/` ni dans `movies_disabled/`) → nettoyée du manifeste à la réconciliation.
+- Intros d'origine de Steam : jamais supprimées ; « désactiver » retire seulement la copie suivie (refusé si elle a été modifiée).
 
 ## Réseau
 

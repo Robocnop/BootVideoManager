@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace BootVideoManager.App.ViewModels;
 
-/// <summary>"Installed" tab: every video present in the Steam movies folder.</summary>
+/// <summary>"Installed" tab: every video Steam can use — installed, disabled, or shipped with Steam.</summary>
 public sealed partial class InstalledViewModel : ViewModelBase
 {
     private readonly InstallCoordinator _installs;
@@ -45,8 +45,15 @@ public sealed partial class InstalledViewModel : ViewModelBase
     public string Summary => Items.Count switch
     {
         0 => "Aucune vidéo dans le dossier.",
-        1 => "1 vidéo dans le dossier",
-        _ => string.Create(CultureInfo.CurrentCulture, $"{Items.Count} vidéos dans le dossier"),
+        1 => $"1 vidéo · {EnabledText}",
+        _ => string.Create(CultureInfo.CurrentCulture, $"{Items.Count} vidéos · {EnabledText}"),
+    };
+
+    private string EnabledText => Items.Count(item => item.IsEnabled) switch
+    {
+        0 => "aucune activée",
+        1 => "1 activée",
+        var count => string.Create(CultureInfo.CurrentCulture, $"{count} activées"),
     };
 
     [ObservableProperty]
@@ -113,14 +120,17 @@ public sealed partial class InstalledItemViewModel(InstalledVideo video, Install
 
     public string FileName => Video.FileName;
 
-    public string Subtitle => Video.Entry switch
+    public string Subtitle => Video switch
     {
-        { Source: InstalledVideoSource.LocalImport } => "Importée depuis un fichier local",
-        { Author: { Length: > 0 } author } => $"par {author} · steamdeckrepo.com",
+        { IsBuiltIn: true } => "Fournie avec Steam (steamui/movies) · l'original n'est jamais modifié",
+        { IsSteamShopItem: true } => "Objet de la boutique des points Steam · à gérer dans Steam",
+        { IsInSteamCache: true } => "Cache de Steam (config/communityitemscache/startupmovies)",
+        { Entry.Source: InstalledVideoSource.LocalImport } => "Importée depuis un fichier local",
+        { Entry.Author: { Length: > 0 } author } => $"par {author} · steamdeckrepo.com",
         _ => "Origine inconnue",
     };
 
-    public string TypeText => Video.Entry?.Type switch
+    public string TypeText => Video.Type switch
     {
         VideoType.SuspendVideo => "Veille",
         VideoType.BootVideo => "Démarrage",
@@ -135,10 +145,21 @@ public sealed partial class InstalledItemViewModel(InstalledVideo video, Install
     {
         InstalledVideoStatus.Tracked => "Installée par l'application",
         InstalledVideoStatus.Modified => "Modifiée depuis l'installation",
+        InstalledVideoStatus.BuiltIn => "Intro d'origine de Steam",
+        _ when Video.IsSteamShopItem => "Géré par Steam",
+        _ when Video.IsInSteamCache => "Cachée dans le dossier cache de Steam",
         _ => "Ajoutée hors de l'application",
     };
 
-    public bool IsTracked => Video.Status == InstalledVideoStatus.Tracked;
+    public bool IsTracked => Video.Status is InstalledVideoStatus.Tracked or InstalledVideoStatus.BuiltIn;
+
+    /// <summary>Stock Steam animations cannot be deleted, only disabled.</summary>
+    public bool CanDelete => !Video.IsBuiltIn && !Video.IsSteamShopItem;
+
+    /// <summary>Points Shop items are re-downloaded by Steam if moved: they are only shown.</summary>
+    public bool CanToggle => !Video.IsSteamShopItem;
+
+    public bool IsEnabled => Video.IsEnabled;
 
     public bool HasPage => Video.Entry?.PageUri is not null;
 
@@ -157,6 +178,10 @@ public sealed partial class InstalledItemViewModel(InstalledVideo video, Install
 
     [RelayCommand]
     private Task RemoveAsync() => installs.RemoveAsync(Video);
+
+    /// <summary>The list is rebuilt from disk afterwards, so the switch always reflects the real state.</summary>
+    [RelayCommand]
+    private Task ToggleEnabledAsync() => installs.SetEnabledAsync(Video, !Video.IsEnabled);
 
     [RelayCommand]
     private Task OpenPageAsync() =>

@@ -124,17 +124,7 @@ public sealed class InstallService : IDisposable
         var partPath = NewPartPath(directory, "import.webm");
         try
         {
-            string sha256;
-            long size;
-            try
-            {
-                await using var source = _fileSystem.FileStream.New(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
-                (sha256, size) = await CopyVerifiedAsync(source, partPath, source.Length, null, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                throw new InstallException(InstallErrorKind.FileSystem, "The selected file could not be read.", ex);
-            }
+            var (sha256, size) = await CopyLocalFileAsync(sourcePath, partPath, "The selected file could not be read.", cancellationToken).ConfigureAwait(false);
 
             var fileName = VideoFileNames.ForLocalImport(_fileSystem.Path.GetFileName(sourcePath), sha256);
             if (await GetTrackedOrThrowIfConflictAsync(directory, fileName, cancellationToken).ConfigureAwait(false) is { } existing)
@@ -162,8 +152,8 @@ public sealed class InstallService : IDisposable
     }
 
     /// <summary>
-    /// Lists the <c>.webm</c> files of the movies folder with their tracking status, and drops manifest
-    /// entries whose file has disappeared.
+    /// Lists the <c>.webm</c> files of the movies folder (enabled) and of its disabled sibling folder with their
+    /// tracking status, plus Steam's stock animations, and drops manifest entries whose file has disappeared.
     /// </summary>
     /// <exception cref="InstallException">The folder or the manifest cannot be read.</exception>
     public async Task<IReadOnlyList<InstalledVideo>> GetInstalledAsync(string moviesDirectory, CancellationToken cancellationToken = default)
@@ -178,8 +168,11 @@ public sealed class InstallService : IDisposable
             var replacements = new Dictionary<ManifestEntry, ManifestEntry>();
             var videos = new List<InstalledVideo>();
             var presentNames = new HashSet<string>(PathUtilities.FileNameComparer);
+            var builtInCopies = new Dictionary<string, InstalledVideo>(PathUtilities.FileNameComparer);
+            var files = ListVideoFiles(directory).Select(path => (Path: path, Enabled: true))
+                .Concat(ListVideoFiles(BuiltInVideos.DisabledDirectoryFor(directory)).Select(path => (Path: path, Enabled: false)));
 
-            foreach (var path in ListVideoFiles(directory))
+            foreach (var (path, enabled) in files)
             {
                 var name = _fileSystem.Path.GetFileName(path);
                 presentNames.Add(name);
@@ -188,7 +181,7 @@ public sealed class InstallService : IDisposable
 
                 if (entry is null)
                 {
-                    videos.Add(new InstalledVideo(name, path, size, InstalledVideoStatus.Untracked, null));
+                    videos.Add(new InstalledVideo(name, path, size, InstalledVideoStatus.Untracked, null) { IsEnabled = enabled });
                     continue;
                 }
 
@@ -198,7 +191,52 @@ public sealed class InstallService : IDisposable
                     replacements[entry] = current;
                 }
 
-                videos.Add(new InstalledVideo(name, path, size, status, current));
+                var video = new InstalledVideo(name, path, size, status, current) { IsEnabled = enabled };
+                if (enabled && status == InstalledVideoStatus.Tracked && current.Source == InstalledVideoSource.SteamBuiltIn)
+                {
+                    builtInCopies[name] = video; // Shown as the "enabled" state of its stock animation.
+                    continue;
+                }
+
+                videos.Add(video);
+            }
+
+            if (BuiltInVideos.DirectoryFor(_fileSystem, directory) is { } builtInDirectory)
+            {
+                foreach (var path in ListVideoFiles(builtInDirectory))
+                {
+                    var name = _fileSystem.Path.GetFileName(path);
+                    if (!BuiltInVideos.IsSelectable(name))
+                    {
+                        continue;
+                    }
+
+                    builtInCopies.Remove(BuiltInVideos.CopyFileName(name), out var copy);
+                    videos.Add(new InstalledVideo(name, path, _fileSystem.FileInfo.New(path).Length, InstalledVideoStatus.BuiltIn, copy?.Entry)
+                    {
+                        IsEnabled = copy is not null,
+                    });
+                }
+            }
+
+            videos.AddRange(builtInCopies.Values); // Stock animation removed by a Steam update: the copy is an ordinary video.
+
+            // Steam also shuffles the videos of its startup movie cache; they are never in the manifest.
+            if (BuiltInVideos.SteamCacheDirectoryFor(_fileSystem, directory) is { } cacheDirectory)
+            {
+                var cacheFiles = ListVideoFiles(cacheDirectory).Select(path => (Path: path, Enabled: true))
+                    .Concat(ListVideoFiles(BuiltInVideos.DisabledDirectoryFor(cacheDirectory)).Select(path => (Path: path, Enabled: false)));
+
+                videos.AddRange(cacheFiles.Select(file => new InstalledVideo(
+                    _fileSystem.Path.GetFileName(file.Path),
+                    file.Path,
+                    _fileSystem.FileInfo.New(file.Path).Length,
+                    InstalledVideoStatus.Untracked,
+                    null)
+                {
+                    IsEnabled = file.Enabled,
+                    IsInSteamCache = true,
+                }));
             }
 
             var vanished = entries.Where(e => !presentNames.Contains(e.FileName)).ToHashSet();
@@ -213,7 +251,10 @@ public sealed class InstallService : IDisposable
                 });
             }
 
-            return videos.OrderBy(v => v.DisplayTitle, StringComparer.CurrentCultureIgnoreCase).ToList();
+            return videos
+                .OrderBy(v => v.IsBuiltIn)
+                .ThenBy(v => v.DisplayTitle, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
         }
         finally
         {
@@ -222,7 +263,7 @@ public sealed class InstallService : IDisposable
     }
 
     /// <summary>
-    /// Deletes one video. Files not installed by the app, or modified since, are only deleted when
+    /// Deletes one video, enabled or disabled. Files not installed by the app, or modified since, are only deleted when
     /// <paramref name="userConfirmed"/> is true.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="fileName"/> is not a bare <c>.webm</c> name.</exception>
@@ -239,7 +280,6 @@ public sealed class InstallService : IDisposable
         }
 
         var directory = NormalizeMoviesDirectory(moviesDirectory);
-        var path = _fileSystem.Path.Combine(directory, fileName);
 
         await _manifestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -247,7 +287,7 @@ public sealed class InstallService : IDisposable
             var manifest = LoadManifest();
             var entry = FindEntry(manifest, directory, fileName);
 
-            if (!_fileSystem.File.Exists(path))
+            if (FindVideoFile(directory, fileName) is not { } path)
             {
                 if (entry is not null)
                 {
@@ -288,7 +328,60 @@ public sealed class InstallService : IDisposable
         }
     }
 
-    /// <summary>Removes every video of the folder; untracked or modified ones only with <paramref name="includeUnconfirmed"/>.</summary>
+    /// <summary>
+    /// Deletes a listed video, wherever it lives: the movies folder (see the file name overload) or Steam's startup
+    /// movie cache, whose files are never the app's own and always require <paramref name="userConfirmed"/>.
+    /// </summary>
+    /// <exception cref="InstallException">Stock animation or Points Shop item (managed by Steam), or the file could not be deleted.</exception>
+    public async Task<UninstallOutcome> UninstallAsync(
+        string moviesDirectory,
+        InstalledVideo video,
+        bool userConfirmed,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+        if (video.IsBuiltIn || video.IsSteamShopItem)
+        {
+            throw new InstallException(InstallErrorKind.FileConflict, $"\"{video.FileName}\" is managed by Steam and cannot be deleted.");
+        }
+
+        if (!video.IsInSteamCache)
+        {
+            return await UninstallAsync(moviesDirectory, video.FileName, userConfirmed, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!VideoFileNames.IsSafeFileName(video.FileName))
+        {
+            throw new ArgumentException("Expected a .webm file name.", nameof(video));
+        }
+
+        var cacheDirectory = SteamCacheDirectory(NormalizeMoviesDirectory(moviesDirectory));
+        if (FindVideoFile(cacheDirectory, video.FileName) is not { } path)
+        {
+            return UninstallOutcome.AlreadyGone;
+        }
+
+        if (!userConfirmed)
+        {
+            return UninstallOutcome.RequiresConfirmation;
+        }
+
+        try
+        {
+            _fileSystem.File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InstallException(InstallErrorKind.FileSystem, $"Could not delete \"{video.FileName}\". Is Steam playing it?", ex);
+        }
+
+        return UninstallOutcome.Deleted;
+    }
+
+    /// <summary>
+    /// Removes every video of the folder; untracked or modified ones only with <paramref name="includeUnconfirmed"/>.
+    /// Stock Steam animations are only disabled (their copy is removed), never deleted; Points Shop items are left to Steam.
+    /// </summary>
     public async Task<UninstallAllResult> UninstallAllAsync(string moviesDirectory, bool includeUnconfirmed, CancellationToken cancellationToken = default)
     {
         var videos = await GetInstalledAsync(moviesDirectory, cancellationToken).ConfigureAwait(false);
@@ -300,7 +393,23 @@ public sealed class InstallService : IDisposable
         {
             try
             {
-                switch (await UninstallAsync(moviesDirectory, video.FileName, includeUnconfirmed, cancellationToken).ConfigureAwait(false))
+                if (video.IsBuiltIn)
+                {
+                    if (video.IsEnabled)
+                    {
+                        await SetEnabledAsync(moviesDirectory, video, enabled: false, cancellationToken).ConfigureAwait(false);
+                        deleted++;
+                    }
+
+                    continue;
+                }
+
+                if (video.IsSteamShopItem)
+                {
+                    continue;
+                }
+
+                switch (await UninstallAsync(moviesDirectory, video, includeUnconfirmed, cancellationToken).ConfigureAwait(false))
                 {
                     case UninstallOutcome.Deleted:
                         deleted++;
@@ -319,11 +428,82 @@ public sealed class InstallService : IDisposable
         return new UninstallAllResult(deleted, requiringConfirmation, failed);
     }
 
+    /// <summary>
+    /// Makes a video playable by Steam or not, without downloading or deleting anything the user cares about:
+    /// other videos move between the movies folder and its disabled sibling; a stock Steam animation is enabled
+    /// by copying it into the movies folder and disabled by removing that copy (the original is never touched).
+    /// </summary>
+    /// <exception cref="ArgumentException">The video's file name is not a bare <c>.webm</c> name.</exception>
+    /// <exception cref="InstallException">Missing file, name conflict, modified copy or disk failure.</exception>
+    public async Task SetEnabledAsync(string moviesDirectory, InstalledVideo video, bool enabled, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(video);
+        if (!VideoFileNames.IsSafeFileName(video.FileName))
+        {
+            throw new ArgumentException("Expected a .webm file name.", nameof(video));
+        }
+
+        var directory = NormalizeMoviesDirectory(moviesDirectory);
+        if (video.IsBuiltIn)
+        {
+            var copyName = BuiltInVideos.CopyFileName(video.FileName);
+            if (enabled)
+            {
+                await EnableBuiltInAsync(directory, video.FileName, cancellationToken).ConfigureAwait(false);
+            }
+            else if (await UninstallAsync(directory, copyName, userConfirmed: false, cancellationToken).ConfigureAwait(false) == UninstallOutcome.RequiresConfirmation)
+            {
+                throw new InstallException(InstallErrorKind.FileConflict, $"\"{copyName}\" was modified outside the application; delete it from the list instead.");
+            }
+
+            return;
+        }
+
+        if (video.IsSteamShopItem)
+        {
+            throw new InstallException(InstallErrorKind.FileConflict, $"\"{video.FileName}\" is a Steam Points Shop item: manage it in Steam's Customization settings.");
+        }
+
+        // Videos of Steam's startup movie cache are disabled next to that cache, the others next to the movies folder.
+        var home = video.IsInSteamCache ? SteamCacheDirectory(directory) : directory;
+        var enabledPath = _fileSystem.Path.Combine(home, video.FileName);
+        var disabledPath = _fileSystem.Path.Combine(BuiltInVideos.DisabledDirectoryFor(home), video.FileName);
+        var (from, to) = enabled ? (disabledPath, enabledPath) : (enabledPath, disabledPath);
+
+        await _manifestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var sourceExists = _fileSystem.File.Exists(from);
+            var targetExists = _fileSystem.File.Exists(to);
+            if (targetExists && !sourceExists)
+            {
+                return;
+            }
+
+            if (!sourceExists)
+            {
+                throw new InstallException(InstallErrorKind.FileSystem, $"\"{video.FileName}\" no longer exists.");
+            }
+
+            if (targetExists)
+            {
+                throw new InstallException(InstallErrorKind.FileConflict, $"\"{video.FileName}\" exists both in its folder and in the matching disabled folder.");
+            }
+
+            EnsureDirectory(_fileSystem.Path.GetDirectoryName(to)!);
+            MoveVideo(from, to);
+        }
+        finally
+        {
+            _manifestLock.Release();
+        }
+    }
+
     public void Dispose() => _manifestLock.Dispose();
 
     /// <summary>
-    /// Returns the tracked, intact file if it is already installed; throws if a foreign or modified file
-    /// occupies the name; returns <c>null</c> if the name is free.
+    /// Returns the tracked, intact file if it is already installed (re-enabling it if it was disabled); throws if a
+    /// foreign or modified file occupies the name; returns <c>null</c> if the name is free.
     /// </summary>
     private async Task<InstalledVideo?> GetTrackedOrThrowIfConflictAsync(string directory, string fileName, CancellationToken cancellationToken)
     {
@@ -332,7 +512,7 @@ public sealed class InstallService : IDisposable
         await _manifestLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!_fileSystem.File.Exists(path))
+            if (FindVideoFile(directory, fileName) is not { } existingPath)
             {
                 return null;
             }
@@ -340,14 +520,76 @@ public sealed class InstallService : IDisposable
             var entry = FindEntry(LoadManifest(), directory, fileName)
                 ?? throw new InstallException(InstallErrorKind.FileConflict, $"\"{fileName}\" already exists and was not added by this application.");
 
-            var (status, current) = await VerifyAsync(entry, path, cancellationToken).ConfigureAwait(false);
-            return status == InstalledVideoStatus.Tracked
-                ? new InstalledVideo(fileName, path, current.SizeBytes, status, current)
-                : throw new InstallException(InstallErrorKind.FileConflict, $"\"{fileName}\" was modified outside the application.");
+            var (status, current) = await VerifyAsync(entry, existingPath, cancellationToken).ConfigureAwait(false);
+            if (status != InstalledVideoStatus.Tracked)
+            {
+                throw new InstallException(InstallErrorKind.FileConflict, $"\"{fileName}\" was modified outside the application.");
+            }
+
+            if (existingPath != path)
+            {
+                MoveVideo(existingPath, path); // Installing a disabled video re-enables it.
+            }
+
+            return new InstalledVideo(fileName, path, current.SizeBytes, status, current);
         }
         finally
         {
             _manifestLock.Release();
+        }
+    }
+
+    /// <summary>Copies a stock Steam animation into the movies folder and tracks the copy.</summary>
+    private async Task EnableBuiltInAsync(string directory, string builtInFileName, CancellationToken cancellationToken)
+    {
+        var builtInDirectory = BuiltInVideos.DirectoryFor(_fileSystem, directory)
+            ?? throw new InstallException(InstallErrorKind.FileSystem, "Steam's own animations folder could not be located.");
+        var copyName = BuiltInVideos.CopyFileName(builtInFileName);
+
+        if (await GetTrackedOrThrowIfConflictAsync(directory, copyName, cancellationToken).ConfigureAwait(false) is not null)
+        {
+            return;
+        }
+
+        EnsureDirectory(directory);
+        var partPath = NewPartPath(directory, copyName);
+        try
+        {
+            var (sha256, size) = await CopyLocalFileAsync(
+                _fileSystem.Path.Combine(builtInDirectory, builtInFileName),
+                partPath,
+                $"Steam's animation \"{builtInFileName}\" could not be read.",
+                cancellationToken).ConfigureAwait(false);
+
+            var entry = new ManifestEntry
+            {
+                FileName = copyName,
+                MoviesDirectory = directory,
+                Source = InstalledVideoSource.SteamBuiltIn,
+                Title = BuiltInVideos.TitleOf(builtInFileName),
+                Type = BuiltInVideos.TypeOf(builtInFileName),
+                Sha256 = sha256,
+                SizeBytes = size,
+            };
+
+            await CommitAsync(partPath, entry, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            DeleteQuietly(partPath);
+        }
+    }
+
+    private async Task<(string Sha256, long Size)> CopyLocalFileAsync(string sourcePath, string partPath, string readError, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var source = _fileSystem.FileStream.New(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
+            return await CopyVerifiedAsync(source, partPath, source.Length, null, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InstallException(InstallErrorKind.FileSystem, readError, ex);
         }
     }
 
@@ -556,6 +798,28 @@ public sealed class InstallService : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new InstallException(InstallErrorKind.FileSystem, "The movies folder could not be read.", ex);
+        }
+    }
+
+    private string SteamCacheDirectory(string directory) =>
+        BuiltInVideos.SteamCacheDirectoryFor(_fileSystem, directory)
+        ?? throw new InstallException(InstallErrorKind.FileSystem, "Steam's startup movie cache could not be located.");
+
+    /// <summary>Path of <paramref name="fileName"/> in <paramref name="directory"/>, else in its disabled folder; <c>null</c> if in neither.</summary>
+    private string? FindVideoFile(string directory, string fileName) =>
+        new[] { directory, BuiltInVideos.DisabledDirectoryFor(directory) }
+            .Select(folder => _fileSystem.Path.Combine(folder, fileName))
+            .FirstOrDefault(_fileSystem.File.Exists);
+
+    private void MoveVideo(string from, string to)
+    {
+        try
+        {
+            _fileSystem.File.Move(from, to);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new InstallException(InstallErrorKind.FileSystem, $"Could not move \"{_fileSystem.Path.GetFileName(from)}\". Is Steam playing it?", ex);
         }
     }
 

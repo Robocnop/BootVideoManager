@@ -24,10 +24,20 @@ Application desktop multiplateforme (Windows, Linux / Steam Deck) en C# / .NET 1
 - **Installation** avec barre de progression et annulation : le fichier est téléchargé à part, vérifié
   (signature WebM, taille, empreinte SHA-256) puis placé dans `config/uioverrides/movies/` sous un nom propre et
   unique (`{slug}_{id}.webm`).
-- **Onglet « Installées »** : toutes les vidéos du dossier, avec leur statut :
+- **Onglet « Installées »** : toutes les vidéos du dossier, **y compris les intros d'origine de Steam**
+  (`steamui/movies` : Steam Deck, Steam Deck OLED, Big Picture, SteamOS…) **et les vidéos cachées dans le cache de
+  Steam** (`config/communityitemscache/startupmovies`, que la lecture aléatoire de Steam utilise aussi), avec leur
+  statut :
   - *Installée par l'application* : suppression directe ;
   - *Modifiée depuis l'installation* ou *Ajoutée hors de l'application* : **jamais supprimée sans confirmation**.
+  - *Intro d'origine de Steam* : jamais modifiée ni supprimée ;
+  - *Cachée dans le dossier cache de Steam* : désactivable (rangée dans `startupmovies_disabled/`), suppression
+    avec confirmation ; les objets achetés dans la boutique des points restent gérés par Steam ;
   - « Tout retirer » procède en deux confirmations distinctes.
+- **Activer / désactiver sans retélécharger ni supprimer** : un interrupteur par vidéo décide si Steam peut la
+  jouer (et la tirer au sort avec « Lecture aléatoire »). Une vidéo désactivée est rangée dans
+  `config/uioverrides/movies_disabled/`, que Steam ne lit pas ; une intro d'origine activée est copiée dans
+  `config/uioverrides/movies/` (`steam_default_*.webm`), l'original restant intact.
 - **Import** d'un fichier `.webm` local.
 - **Détection automatique de Steam** : registre Windows, `~/.steam`, `~/.local/share/Steam`, Flatpak, Snap ; choix
   manuel possible et mémorisé.
@@ -93,7 +103,7 @@ src/BootVideoManager.Core    Services sans UI, entièrement testés
   Caching/   cache des miniatures
   Platform/  chemins de l'application, réglages
 src/BootVideoManager.App     Avalonia 12 + CommunityToolkit.Mvvm (Views / ViewModels / Services / Controls)
-tests/BootVideoManager.Core.Tests   xUnit v3 (128 tests)
+tests/BootVideoManager.Core.Tests   xUnit v3 (140 tests)
 ```
 
 Détails et justifications : [docs/architecture.md](docs/architecture.md). Analyse de l'API et des chemins Steam :

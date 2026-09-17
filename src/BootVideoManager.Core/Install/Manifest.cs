@@ -7,6 +7,9 @@ public enum InstalledVideoSource
 {
     SteamDeckRepo,
     LocalImport,
+
+    /// <summary>Copy of a stock Steam animation, made to enable it; the original is never touched.</summary>
+    SteamBuiltIn,
 }
 
 /// <summary>One file this application placed in a movies folder.</summary>

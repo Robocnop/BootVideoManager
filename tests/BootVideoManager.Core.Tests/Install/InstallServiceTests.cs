@@ -346,6 +346,215 @@ public sealed class InstallServiceTests : IDisposable
         Assert.Equal(InstallErrorKind.InvalidFile, ex.Kind);
     }
 
+    private static readonly string DisabledDirectory = MockUnixSupport.Path(@"C:\Steam\config\uioverrides\movies_disabled");
+    private static readonly string SteamUiMoviesDirectory = MockUnixSupport.Path(@"C:\Steam\steamui\movies");
+
+    private string DisabledPath(string fileName) => _fileSystem.Path.Combine(DisabledDirectory, fileName);
+
+    private byte[] AddStockAnimation(string fileName, int length = 1_500)
+    {
+        var body = WebmBytes(length, fill: 3);
+        _fileSystem.AddFile(_fileSystem.Path.Combine(SteamUiMoviesDirectory, fileName), new MockFileData(body));
+        return body;
+    }
+
+    [Fact]
+    public async Task GetInstalled_ListsSteamStockAnimations_AsBuiltInAndDisabled()
+    {
+        await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+        AddStockAnimation("deck_startup.webm");
+        AddStockAnimation("oled-suspend-animation.webm");
+        AddStockAnimation("oled-suspend-animation-from-throbber.webm"); // transition, not a selectable movie
+        AddStockAnimation("steamdeck_touchscreen.webm"); // controller tutorial
+
+        var videos = await _service.GetInstalledAsync(MoviesDirectory, Ct);
+
+        Assert.Equal(
+            [
+                ("mnzge_MnZgE.webm", InstalledVideoStatus.Tracked, true),
+                ("deck_startup.webm", InstalledVideoStatus.BuiltIn, false),
+                ("oled-suspend-animation.webm", InstalledVideoStatus.BuiltIn, false),
+            ],
+            videos.Select(v => (v.FileName, v.Status, v.IsEnabled)));
+        Assert.Equal("Steam Deck (Steam)", videos[1].DisplayTitle);
+        Assert.Equal(VideoType.BootVideo, videos[1].Type);
+        Assert.Equal(VideoType.SuspendVideo, videos[2].Type);
+    }
+
+    [Fact]
+    public async Task SetEnabled_BuiltIn_CopiesIntoMoviesFolder_AndDisablingRemovesOnlyTheCopy()
+    {
+        var body = AddStockAnimation("deck_startup.webm");
+        var stock = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+
+        await _service.SetEnabledAsync(MoviesDirectory, stock, enabled: true, Ct);
+
+        Assert.Equal(["steam_default_deck_startup.webm"], FilesInMovies());
+        Assert.Equal(body, _fileSystem.File.ReadAllBytes(MoviePath("steam_default_deck_startup.webm")));
+        var enabled = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct)); // the copy is merged into its stock row
+        Assert.Equal((InstalledVideoStatus.BuiltIn, true), (enabled.Status, enabled.IsEnabled));
+        Assert.Equal(InstalledVideoSource.SteamBuiltIn, Assert.Single(_manifestStore.Load().Entries).Source);
+
+        await _service.SetEnabledAsync(MoviesDirectory, enabled, enabled: false, Ct);
+
+        Assert.Empty(FilesInMovies());
+        Assert.Empty(_manifestStore.Load().Entries);
+        Assert.Equal(body, _fileSystem.File.ReadAllBytes(_fileSystem.Path.Combine(SteamUiMoviesDirectory, "deck_startup.webm")));
+        Assert.False(Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct)).IsEnabled);
+        Assert.Empty(_http.Requests);
+    }
+
+    [Fact]
+    public async Task SetEnabled_InstalledVideo_MovesToDisabledFolderAndBack_WithoutDownloadingAgain()
+    {
+        var video = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+
+        await _service.SetEnabledAsync(MoviesDirectory, video, enabled: false, Ct);
+
+        Assert.Empty(FilesInMovies());
+        Assert.True(_fileSystem.File.Exists(DisabledPath(video.FileName)));
+        var disabled = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+        Assert.Equal((InstalledVideoStatus.Tracked, false), (disabled.Status, disabled.IsEnabled));
+        Assert.Single(_manifestStore.Load().Entries); // still installed
+
+        await _service.SetEnabledAsync(MoviesDirectory, disabled, enabled: true, Ct);
+
+        Assert.Equal([video.FileName], FilesInMovies());
+        Assert.True(Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct)).IsEnabled);
+        Assert.Single(_http.Requests);
+    }
+
+    [Fact]
+    public async Task SetEnabled_FileAddedByUser_IsMovedNotDeleted()
+    {
+        _fileSystem.AddFile(MoviePath("my_own_intro.webm"), new MockFileData(WebmBytes(100)));
+        var video = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+
+        await _service.SetEnabledAsync(MoviesDirectory, video, enabled: false, Ct);
+
+        Assert.True(_fileSystem.File.Exists(DisabledPath("my_own_intro.webm")));
+        var disabled = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+        Assert.Equal((InstalledVideoStatus.Untracked, false), (disabled.Status, disabled.IsEnabled));
+    }
+
+    [Fact]
+    public async Task SetEnabled_NameTakenInTarget_Throws_AndMovesNothing()
+    {
+        var video = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+        _fileSystem.AddFile(DisabledPath(video.FileName), new MockFileData(WebmBytes(10)));
+
+        var ex = await Assert.ThrowsAsync<InstallException>(() => _service.SetEnabledAsync(MoviesDirectory, video, enabled: false, Ct));
+
+        Assert.Equal(InstallErrorKind.FileConflict, ex.Kind);
+        Assert.Equal([video.FileName], FilesInMovies());
+    }
+
+    [Fact]
+    public async Task Install_DisabledVideo_ReEnablesItWithoutDownloading()
+    {
+        var video = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+        await _service.SetEnabledAsync(MoviesDirectory, video, enabled: false, Ct);
+
+        var again = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+
+        Assert.Equal(MoviePath(video.FileName), again.FullPath);
+        Assert.Equal([video.FileName], FilesInMovies());
+        Assert.Single(_http.Requests);
+    }
+
+    [Fact]
+    public async Task Uninstall_DisabledVideo_IsDeletedAndForgotten()
+    {
+        var video = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+        await _service.SetEnabledAsync(MoviesDirectory, video, enabled: false, Ct);
+
+        Assert.Equal(UninstallOutcome.Deleted, await _service.UninstallAsync(MoviesDirectory, video.FileName, userConfirmed: false, Ct));
+
+        Assert.False(_fileSystem.File.Exists(DisabledPath(video.FileName)));
+        Assert.Empty(_manifestStore.Load().Entries);
+    }
+
+    [Fact]
+    public async Task UninstallAll_DisablesStockAnimations_ButNeverDeletesThem()
+    {
+        AddStockAnimation("deck_startup.webm");
+        AddStockAnimation("oled_startup.webm");
+        await _service.SetEnabledAsync(MoviesDirectory, (await _service.GetInstalledAsync(MoviesDirectory, Ct))[0], enabled: true, Ct);
+
+        var result = await _service.UninstallAllAsync(MoviesDirectory, includeUnconfirmed: true, Ct);
+
+        Assert.Equal(1, result.Deleted);
+        Assert.Empty(FilesInMovies());
+        Assert.Equal(2, _fileSystem.Directory.GetFiles(SteamUiMoviesDirectory).Length);
+    }
+
+    private static readonly string SteamCacheDirectory = MockUnixSupport.Path(@"C:\Steam\config\communityitemscache\startupmovies");
+    private const string ShopItemFileName = "31845574022_590371b7f10882d09ac59e5d3691b462c0091a6d.webm";
+
+    private string CachePath(string fileName) => _fileSystem.Path.Combine(SteamCacheDirectory, fileName);
+
+    [Fact]
+    public async Task GetInstalled_ListsVideosHiddenInSteamStartupMovieCache()
+    {
+        _fileSystem.AddFile(CachePath("helldivers_2_part_2.webm"), new MockFileData(WebmBytes(100)));
+        _fileSystem.AddFile(CachePath(ShopItemFileName), new MockFileData(WebmBytes(100)));
+
+        var videos = await _service.GetInstalledAsync(MoviesDirectory, Ct);
+
+        Assert.All(videos, v => Assert.True(v.IsInSteamCache && v.IsEnabled && v.Status == InstalledVideoStatus.Untracked));
+        Assert.Equal([ShopItemFileName, "helldivers_2_part_2.webm"], videos.Select(v => v.FileName).Order(StringComparer.Ordinal));
+        Assert.True(videos.Single(v => v.FileName == ShopItemFileName).IsSteamShopItem);
+        Assert.False(videos.Single(v => v.FileName == "helldivers_2_part_2.webm").IsSteamShopItem);
+    }
+
+    [Fact]
+    public async Task SetEnabled_SteamCacheVideo_MovesNextToTheCacheAndBack()
+    {
+        var body = WebmBytes(100);
+        _fileSystem.AddFile(CachePath("helldivers_2_part_2.webm"), new MockFileData(body));
+        var video = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+
+        await _service.SetEnabledAsync(MoviesDirectory, video, enabled: false, Ct);
+
+        Assert.False(_fileSystem.File.Exists(CachePath("helldivers_2_part_2.webm")));
+        Assert.Equal(body, _fileSystem.File.ReadAllBytes(_fileSystem.Path.Combine(SteamCacheDirectory + "_disabled", "helldivers_2_part_2.webm")));
+        var disabled = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+        Assert.True(disabled.IsInSteamCache && !disabled.IsEnabled);
+        Assert.Empty(FilesInMovies());
+
+        await _service.SetEnabledAsync(MoviesDirectory, disabled, enabled: true, Ct);
+
+        Assert.True(_fileSystem.File.Exists(CachePath("helldivers_2_part_2.webm")));
+    }
+
+    [Fact]
+    public async Task SteamShopItem_IsNeverMovedNorDeleted()
+    {
+        _fileSystem.AddFile(CachePath(ShopItemFileName), new MockFileData(WebmBytes(100)));
+        var item = Assert.Single(await _service.GetInstalledAsync(MoviesDirectory, Ct));
+
+        await Assert.ThrowsAsync<InstallException>(() => _service.SetEnabledAsync(MoviesDirectory, item, enabled: false, Ct));
+        await Assert.ThrowsAsync<InstallException>(() => _service.UninstallAsync(MoviesDirectory, item, userConfirmed: true, Ct));
+        var result = await _service.UninstallAllAsync(MoviesDirectory, includeUnconfirmed: true, Ct);
+
+        Assert.Equal(0, result.Deleted);
+        Assert.True(_fileSystem.File.Exists(CachePath(ShopItemFileName)));
+    }
+
+    [Fact]
+    public async Task Uninstall_SteamCacheVideo_RequiresConfirmation_AndNeverTouchesTheMoviesFolderNamesake()
+    {
+        await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+        _fileSystem.AddFile(CachePath("mnzge_MnZgE.webm"), new MockFileData(WebmBytes(100)));
+        var cached = (await _service.GetInstalledAsync(MoviesDirectory, Ct)).Single(v => v.IsInSteamCache);
+
+        Assert.Equal(UninstallOutcome.RequiresConfirmation, await _service.UninstallAsync(MoviesDirectory, cached, userConfirmed: false, Ct));
+        Assert.Equal(UninstallOutcome.Deleted, await _service.UninstallAsync(MoviesDirectory, cached, userConfirmed: true, Ct));
+
+        Assert.False(_fileSystem.File.Exists(CachePath("mnzge_MnZgE.webm")));
+        Assert.Equal(["mnzge_MnZgE.webm"], FilesInMovies());
+    }
+
     /// <summary>Synchronous progress sink (the BCL Progress&lt;T&gt; posts asynchronously).</summary>
     private sealed class RecordingProgress(Action<DownloadProgress>? onReport = null) : IProgress<DownloadProgress>
     {

@@ -27,7 +27,7 @@ public static class UserMessages
         {
             InstallErrorKind.Download => "Le téléchargement a échoué. Vérifiez votre connexion puis réessayez.",
             InstallErrorKind.InvalidFile => "Le fichier n'est pas une vidéo WebM valide : il n'a pas été installé.",
-            InstallErrorKind.FileConflict => "Un fichier du même nom existe déjà dans le dossier des vidéos et n'appartient pas à l'application : il n'a pas été modifié.",
+            InstallErrorKind.FileConflict => "Un fichier du même nom existe déjà (dossier des vidéos ou des vidéos désactivées) ou a été modifié hors de l'application : rien n'a été changé.",
             InstallErrorKind.FileSystem => "Opération impossible sur le disque (droits d'accès, espace libre, ou fichier utilisé par Steam).",
             _ => "L'opération a échoué.",
         };

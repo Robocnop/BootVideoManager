@@ -1,3 +1,5 @@
+using BootVideoManager.Core.Models;
+
 namespace BootVideoManager.Core.Install;
 
 /// <summary>Download progress; <see cref="TotalBytes"/> is unknown when the server sends no length.</summary>
@@ -18,14 +20,34 @@ public enum InstalledVideoStatus
 
     /// <summary>Added by the user or another tool: ask before deleting.</summary>
     Untracked,
+
+    /// <summary>Stock animation shipped with Steam (<c>steamui/movies</c>): never modified nor deleted, only copied when enabled.</summary>
+    BuiltIn,
 }
 
-/// <summary>A <c>.webm</c> file currently present in a movies folder.</summary>
+/// <summary>
+/// A video Steam can use: a <c>.webm</c> of the movies folder (enabled), of its disabled sibling folder, or a stock
+/// Steam animation (enabled when its copy sits in the movies folder).
+/// </summary>
 public sealed record InstalledVideo(string FileName, string FullPath, long SizeBytes, InstalledVideoStatus Status, ManifestEntry? Entry)
 {
-    public bool RequiresConfirmationToDelete => Status != InstalledVideoStatus.Tracked;
+    /// <summary>True when Steam sees the video (Customization list and startup movie shuffle).</summary>
+    public bool IsEnabled { get; init; } = true;
 
-    public string DisplayTitle => Entry?.Title ?? Path.GetFileNameWithoutExtension(FileName);
+    public bool IsBuiltIn => Status == InstalledVideoStatus.BuiltIn;
+
+    /// <summary>File of Steam's startup movie cache (<c>config/communityitemscache/startupmovies</c>) rather than the movies folder.</summary>
+    public bool IsInSteamCache { get; init; }
+
+    /// <summary>Points Shop item cached by Steam: managed in Steam, never moved nor deleted by the app.</summary>
+    public bool IsSteamShopItem => IsInSteamCache && BuiltInVideos.IsSteamShopItemFileName(FileName);
+
+    public bool RequiresConfirmationToDelete => Status is InstalledVideoStatus.Modified or InstalledVideoStatus.Untracked;
+
+    public VideoType Type => Entry?.Type ?? BuiltInVideos.TypeOf(FileName);
+
+    public string DisplayTitle => Entry?.Title
+        ?? (IsBuiltIn ? BuiltInVideos.TitleOf(FileName) : Path.GetFileNameWithoutExtension(FileName));
 }
 
 public enum UninstallOutcome

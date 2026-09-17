@@ -96,25 +96,50 @@ public sealed partial class InstallCoordinator : ObservableObject
 
         try
         {
-            var outcome = await _install.UninstallAsync(Steam.MoviesDirectory, video.FileName, userConfirmed: false);
+            var outcome = await _install.UninstallAsync(Steam.MoviesDirectory, video, userConfirmed: false);
             if (outcome == UninstallOutcome.RequiresConfirmation)
             {
-                var reason = video.Status == InstalledVideoStatus.Modified
-                    ? $"« {video.DisplayTitle} » a été modifiée depuis son installation."
-                    : $"« {video.FileName} » n'a pas été installée par cette application (ajout manuel ou autre outil).";
+                var reason = video switch
+                {
+                    { Status: InstalledVideoStatus.Modified } => $"« {video.DisplayTitle} » a été modifiée depuis son installation.",
+                    { IsInSteamCache: true } => $"« {video.FileName} » se trouve dans le cache des vidéos de démarrage de Steam et n'a pas été installée par cette application.\nAstuce : la désactiver la retire aussi de la lecture aléatoire, sans la supprimer.",
+                    _ => $"« {video.FileName} » n'a pas été installée par cette application (ajout manuel ou autre outil).",
+                };
 
                 if (!await _dialogs.ConfirmAsync("Supprimer ce fichier ?", $"{reason}\nLa supprimer quand même ?", "Supprimer", destructive: true))
                 {
                     return;
                 }
 
-                outcome = await _install.UninstallAsync(Steam.MoviesDirectory, video.FileName, userConfirmed: true);
+                outcome = await _install.UninstallAsync(Steam.MoviesDirectory, video, userConfirmed: true);
             }
 
             if (outcome == UninstallOutcome.Deleted)
             {
                 _notifier.ShowInfo($"« {video.DisplayTitle} » a été retirée.");
             }
+        }
+        catch (InstallException ex)
+        {
+            _notifier.ShowError(UserMessages.For(ex));
+        }
+        finally
+        {
+            await RefreshAsync();
+        }
+    }
+
+    /// <summary>Makes a video playable at startup or not, without downloading or deleting it.</summary>
+    public async Task SetEnabledAsync(InstalledVideo video, bool enabled)
+    {
+        if (Steam is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _install.SetEnabledAsync(Steam.MoviesDirectory, video, enabled);
         }
         catch (InstallException ex)
         {
@@ -137,8 +162,9 @@ public sealed partial class InstallCoordinator : ObservableObject
             return;
         }
 
-        var tracked = Installed.Count(v => !v.RequiresConfirmationToDelete);
-        var others = Installed.Count - tracked;
+        // Stock Steam animations are only disabled along with the tracked videos, never deleted.
+        var tracked = Installed.Count(v => v.Status == InstalledVideoStatus.Tracked || (v.IsBuiltIn && v.IsEnabled));
+        var others = Installed.Count(v => v.RequiresConfirmationToDelete && !v.IsSteamShopItem);
         var deleted = 0;
         var failed = new List<string>();
 
