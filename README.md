@@ -40,7 +40,8 @@ The interface is available in **English and French**.
 
 1. Download **`BootVideoManager-<version>-win-x64-setup.exe`** from the
    [latest release](https://github.com/Robocnop/BootVideoManager/releases/latest)
-   (`win-arm64` for ARM PCs such as Snapdragon laptops) and run it.
+   (`win-arm64` for ARM PCs such as Snapdragon laptops) and run it. The installer is not code-signed yet, so Windows
+   SmartScreen may warn about it: click *More info*, then *Run anyway*.
 2. Open Boot Video Manager, pick a video in the **Catalog** and click **Install**.
 3. In Steam, open **Settings › Customization** and select it as your **Startup movie**.
 4. Launch **Big Picture mode** and enjoy.

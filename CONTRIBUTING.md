@@ -30,7 +30,8 @@ A good bug report contains:
 - a screenshot if the problem is visual.
 
 For a security issue (for example a way to make the app run or delete an unexpected file), please do not open a
-public issue: contact the maintainer through GitHub first.
+public issue: report it privately with the **Report a vulnerability** button in the repository's
+[Security tab](https://github.com/Robocnop/BootVideoManager/security).
 
 ## Suggesting a feature
 
