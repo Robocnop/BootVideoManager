@@ -1,97 +1,165 @@
+<div align="center">
+
+<img src="logo/logo.png" alt="Boot Video Manager logo" width="128" />
+
 # Boot Video Manager
 
-Gestionnaire de **vidéos de démarrage** (startup movies) pour **Steam Big Picture** et le **Steam Deck**,
-façon « mod launcher » : parcourez le catalogue de [steamdeckrepo.com](https://steamdeckrepo.com/),
-prévisualisez une vidéo, installez-la en un clic et retirez-la proprement.
+**Browse, preview and install custom startup videos for Steam Big Picture and the Steam Deck — in one click.**
 
-Application desktop multiplateforme (Windows, Linux / Steam Deck) en C# / .NET 10 et Avalonia.
+[![Latest release](https://img.shields.io/github/v/release/Robocnop/BootVideoManager?label=download&sort=semver)](https://github.com/Robocnop/BootVideoManager/releases/latest)
+[![CI](https://github.com/Robocnop/BootVideoManager/actions/workflows/ci.yml/badge.svg)](https://github.com/Robocnop/BootVideoManager/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
 
-> Application non officielle, sans lien avec Valve ni avec steamdeckrepo.com. Les vidéos appartiennent à
-> leurs auteurs, crédités sur chaque fiche.
+[**Download**](https://github.com/Robocnop/BootVideoManager/releases/latest) ·
+[Features](#features) ·
+[How it works](#how-it-works) ·
+[Troubleshooting](#troubleshooting) ·
+[Building from source](#building-from-source)
 
-![Catalogue et aperçu](docs/screenshots/preview.png)
+</div>
 
-![Vidéos installées](docs/screenshots/installed.png)
+---
 
-## Fonctionnalités
+Boot Video Manager is a desktop "mod launcher" for Steam **startup movies**. It gives you the whole
+[steamdeckrepo.com](https://steamdeckrepo.com/) catalog (about 8,400 videos) with search, filters and a live preview,
+installs a video into Steam in one click, and removes it cleanly when you are done — without ever touching files
+you did not ask it to.
 
-- **Catalogue** complet de steamdeckrepo.com (≈ 8 400 vidéos) : miniature, titre, auteur, durée, « j'aime »,
-  téléchargements, type et appareils ciblés.
-- **Recherche** instantanée (titre ou auteur, sans tenir compte des accents), **tri** (tendances, plus
-  téléchargées, plus aimées, récentes, anciennes) et **filtres** : démarrage / veille, Steam Deck / Steam Machine,
-  durée.
-- **Aperçu vidéo** en boucle dans l'application (libvlc), avec pause et coupure du son.
-- **Installation** avec barre de progression et annulation : le fichier est téléchargé à part, vérifié
-  (signature WebM, taille, empreinte SHA-256) puis placé dans `config/uioverrides/movies/` sous un nom propre et
-  unique (`{slug}_{id}.webm`).
-- **Onglet « Installées »** : toutes les vidéos du dossier, **y compris les intros d'origine de Steam**
-  (`steamui/movies` : Steam Deck, Steam Deck OLED, Big Picture, SteamOS…) **et les vidéos cachées dans le cache de
-  Steam** (`config/communityitemscache/startupmovies`, que la lecture aléatoire de Steam utilise aussi), avec leur
-  statut :
-  - *Installée par l'application* : suppression directe ;
-  - *Modifiée depuis l'installation* ou *Ajoutée hors de l'application* : **jamais supprimée sans confirmation**.
-  - *Intro d'origine de Steam* : jamais modifiée ni supprimée ;
-  - *Cachée dans le dossier cache de Steam* : désactivable (rangée dans `startupmovies_disabled/`), suppression
-    avec confirmation ; les objets achetés dans la boutique des points restent gérés par Steam ;
-  - « Tout retirer » procède en deux confirmations distinctes.
-- **Activer / désactiver sans retélécharger ni supprimer** : un interrupteur par vidéo décide si Steam peut la
-  jouer (et la tirer au sort avec « Lecture aléatoire »). Une vidéo désactivée est rangée dans
-  `config/uioverrides/movies_disabled/`, que Steam ne lit pas ; une intro d'origine activée est copiée dans
-  `config/uioverrides/movies/` (`steam_default_*.webm`), l'original restant intact.
-- **Import** d'un fichier `.webm` local.
-- **Détection automatique de Steam** : registre Windows, `~/.steam`, `~/.local/share/Steam`, Flatpak, Snap ; choix
-  manuel possible et mémorisé.
-- **Hors ligne** : le dernier catalogue connu reste consultable, avec un message clair.
-- **Mises à jour automatiques** : au démarrage, l'application consulte les
-  [Releases GitHub](https://github.com/Robocnop/BootVideoManager/releases) et propose la nouvelle version ;
-  l'installateur est téléchargé, vérifié (taille et SHA-256 publiés avec la release), puis lancé, et l'application
-  redémarre à jour. Version ignorable, vérification désactivable dans *Réglages*.
-- **Français / English** : langue du système par défaut, ou au choix dans *Réglages*.
-- **Téléchargements robustes** : reprise après coupure (requêtes `Range`), file d'attente de deux téléchargements
-  simultanés.
-- **Préférences mémorisées** : tri, filtres, volume et son coupé de l'aperçu.
-- **Une seule instance** : relancer l'application ramène la fenêtre ouverte au premier plan.
-- **Journal de diagnostic** (un fichier par jour, 14 jours conservés), ouvrable depuis *Réglages › À propos*.
+The interface is available in **English and French**.
 
-## Installation
+> Unofficial project, not affiliated with Valve or steamdeckrepo.com. Every video belongs to its author, who is
+> credited on its page.
 
-### Windows
+![Catalog and preview](docs/screenshots/preview.png)
 
-**Installateur (recommandé)** : téléchargez `BootVideoManager-<version>-win-x64-setup.exe` (ou `win-arm64` pour
-les PC ARM) depuis les
-[Releases](https://github.com/Robocnop/BootVideoManager/releases) et lancez-le. Il installe tous les
-composants (runtime .NET, Avalonia, VLC) dans le dossier choisi, crée un raccourci dans le menu Démarrer (et sur le
-Bureau si vous le cochez) et ajoute l'application à *Paramètres › Applications* pour la désinstaller. Aucun droit
-administrateur n'est demandé par défaut (installation pour l'utilisateur courant ; l'installation pour tous les
-utilisateurs reste proposée). Les mises à jour s'installent par-dessus ; la désinstallation propose de supprimer
-aussi les réglages et le cache, sans jamais toucher aux vidéos placées dans Steam.
+![Installed videos](docs/screenshots/installed.png)
 
-Une fois installée, l'application se met à jour d'elle-même (voir *Réglages › Mises à jour*).
+## Quick start
 
-**Portable** : `BootVideoManager-<version>-win-x64-portable.exe` est un exécutable unique qui contient tout ; au
-premier lancement, ses bibliothèques natives sont extraites dans `%TEMP%\.net`. La version portable signale les
-nouvelles versions mais ne peut pas se remplacer elle-même : le bouton ouvre la page de téléchargement.
+1. Download **`BootVideoManager-<version>-win-x64-setup.exe`** from the
+   [latest release](https://github.com/Robocnop/BootVideoManager/releases/latest)
+   (`win-arm64` for ARM PCs such as Snapdragon laptops) and run it.
+2. Open Boot Video Manager, pick a video in the **Catalog** and click **Install**.
+3. In Steam, open **Settings › Customization** and select it as your **Startup movie**.
+4. Launch **Big Picture mode** and enjoy.
 
-L'exécutable n'est pas signé : Windows SmartScreen peut afficher un avertissement (« Informations complémentaires »
-puis « Exécuter quand même »).
+No administrator rights and no .NET runtime are needed: the installer ships every component and installs for the
+current user by default.
 
-### Linux / Steam Deck (mode Bureau)
+## Features
 
-1. Générez l'archive `linux-x64` (voir [Build](#build)) ou l'AppImage (`packaging/linux/build-appimage.sh`).
-2. Décompressez, puis `chmod +x BootVideoManager && ./BootVideoManager`.
-3. L'aperçu vidéo utilise la **libvlc du système** : installez VLC via votre gestionnaire de paquets. Sans libvlc,
-   tout fonctionne sauf l'aperçu, qui affiche un message explicatif. Sur SteamOS (système en lecture seule),
-   l'aperçu n'est donc pas disponible pour l'instant (voir [Limites](#limites-connues)).
+### Catalog
 
-### Activer la vidéo dans Steam
+- The **full steamdeckrepo.com catalog** with thumbnail, author, duration, likes, downloads, type and target devices.
+- **Instant search** by title or author (accent-insensitive), **sorting** (trending, most downloaded, most liked,
+  newest, oldest) and **filters** (startup or suspend video, Steam Deck or Steam Machine, duration).
+- A **looping preview** inside the app, with pause, mute and volume.
+- Your sort, filters and preview volume are **remembered** between sessions.
+- **Works offline** with the last known catalog.
 
-Steam › **Paramètres** › **Personnalisation** › vidéo de démarrage. Sur Windows, la vidéo n'est jouée qu'au
-lancement du mode **Big Picture**. Si Steam reste bloqué sur un écran noir, retirez la vidéo depuis l'onglet
-*Installées*.
+### Safe installation
 
-## Build
+- Downloads are **verified** (WebM signature, size, SHA-256) before being placed in Steam's
+  `config/uioverrides/movies/` folder under a clean, unique name.
+- Interrupted downloads **resume where they stopped**; two run at a time and the others wait their turn.
+- Every install is tracked: the app **never deletes a file it did not install** (or that was modified since)
+  without asking first.
+- **Import** your own `.webm` files.
 
-Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download) (version fixée par `global.json`).
+### Installed videos
+
+- One list for everything Steam can play: your videos, **Steam's stock intros** (Steam Deck, Steam Deck OLED,
+  Big Picture, SteamOS…) and the videos in **Steam's startup movie cache**.
+- **Enable or disable** any video with a switch, without deleting or re-downloading it — disabled videos are simply
+  moved to a folder Steam ignores, so they also leave the shuffle.
+- Steam's original files and Points Shop items are **never modified**.
+
+### App
+
+- **Automatic updates**: the app checks GitHub at startup and installs a new version in one click. The installer is
+  verified against the size and SHA-256 published with the release before it runs; the app then restarts, up to
+  date. You can skip a version or turn the check off.
+- **Automatic Steam detection** (Windows registry, `~/.steam`, `~/.local/share/Steam`, Flatpak, Snap), or pick the
+  folder yourself.
+- **Single instance**: launching the app again brings the open window to the front.
+- **Diagnostic log**, one click away in *Settings › About*, to attach to bug reports.
+
+## How it works
+
+Steam plays any `.webm` placed in `<Steam>/config/uioverrides/movies/` and lists it under
+*Settings › Customization*. Boot Video Manager manages that folder for you:
+
+| Location | Used for |
+|---|---|
+| `config/uioverrides/movies/` | Videos Steam can play (installed by the app, imported, or added by hand) |
+| `config/uioverrides/movies_disabled/` | Videos you disabled — kept, but invisible to Steam |
+| `steamui/movies/` | Steam's stock animations — read only; enabling one copies it to `movies/` as `steam_default_*.webm` |
+| `config/communityitemscache/startupmovies/` | Steam's own startup movie cache, also used by the shuffle |
+
+The app's own data never goes inside the Steam folder:
+
+| | Windows | Linux |
+|---|---|---|
+| Settings and install manifest | `%APPDATA%\BootVideoManager\` | `~/.config/BootVideoManager/` |
+| Cache (catalog, thumbnails, updates) | `%LOCALAPPDATA%\BootVideoManager\cache\` | `~/.cache/BootVideoManager/` |
+| Logs (kept 14 days) | `%LOCALAPPDATA%\BootVideoManager\logs\` | `~/.local/state/BootVideoManager/logs/` |
+
+The cache can be deleted at any time. If the manifest is deleted, installed videos stay in place and simply ask
+for confirmation before deletion.
+
+### Being a good citizen
+
+steamdeckrepo.com is a community site, so the app keeps its footprint small: the full catalog is fetched once and
+cached for an hour, then refreshed with conditional requests (`If-Modified-Since` → empty `304`); search, sorting and
+filtering happen locally; thumbnails are cached on disk with at most four parallel downloads; requests carry an
+identifiable User-Agent, honour `Retry-After` and are retried at most three times; videos are downloaded through the
+site's official `/post/download/{id}` link.
+
+## Download options
+
+| File | For |
+|---|---|
+| `BootVideoManager-<version>-win-x64-setup.exe` | **Windows 10/11 — recommended** |
+| `BootVideoManager-<version>-win-arm64-setup.exe` | Windows on ARM |
+| `BootVideoManager-<version>-win-x64-portable.exe` | Windows, no installation (single file) |
+| `BootVideoManager-<version>-win-arm64-portable.exe` | Windows on ARM, no installation |
+| `BootVideoManager-<version>-linux-x64.tar.gz` | Linux x64 (experimental, see below) |
+| `SHA256SUMS.txt` | Checksums of every file |
+
+- The **installer** adds Start menu (and optional desktop) shortcuts and an entry in *Settings › Apps*. It can
+  install for the current user (default, no admin prompt) or for all users. Updates install over the existing
+  copy; uninstalling offers to remove settings and cache and never touches the videos placed in Steam.
+- The **portable** executable contains everything; its native libraries are extracted to `%TEMP%\.net` on first
+  launch. It tells you when a new version is out but cannot replace itself: the button opens the download page.
+- **Linux / Steam Deck (desktop mode)**: extract the archive, then `chmod +x BootVideoManager && ./BootVideoManager`.
+  Previews use the system libvlc (install VLC with your package manager); without it everything works except the
+  preview. This build is covered by unit tests but has not been tried on real hardware yet.
+
+## Troubleshooting
+
+**Windows SmartScreen warns about the installer.**
+The executable is not code-signed yet. Click *More info*, then *Run anyway*.
+
+**The video does not play when Steam starts.**
+On Windows, Steam only plays the startup movie when **Big Picture mode** starts. Also check that the video is
+selected in *Steam › Settings › Customization* and that it is enabled in the app's *Installed* tab.
+
+**Steam is stuck on a black screen.**
+Disable or delete the video from the *Installed* tab, then restart Steam.
+
+**Steam was not found.**
+Open *Settings* in the app and choose your Steam folder (the one that contains `config` and `steamapps`).
+
+**Something else went wrong.**
+Open *Settings › About › Open the logs folder* and attach today's log to a
+[new issue](https://github.com/Robocnop/BootVideoManager/issues).
+
+## Building from source
+
+Requirements: the [.NET 10 SDK](https://dotnet.microsoft.com/download) (pinned by `global.json`), and
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) for the Windows installer (`winget install JRSoftware.InnoSetup`).
 
 ```bash
 dotnet build BootVideoManager.slnx
@@ -99,96 +167,82 @@ dotnet run --project src/BootVideoManager.App
 dotnet test --solution BootVideoManager.slnx
 ```
 
-Tester sans toucher à son vrai Steam : créez un dossier contenant un sous-dossier `config`, puis
+To try the app without touching your real Steam install, create a folder containing a `config` sub-folder and run:
 
 ```bash
-dotnet run --project src/BootVideoManager.App -- --steam-root /chemin/vers/FauxSteam
+dotnet run --project src/BootVideoManager.App -- --steam-root /path/to/FakeSteam
 ```
 
-Archives autonomes (tests puis publication) :
+Self-contained builds (tests first, then publish to `artifacts/publish/`):
 
 ```powershell
-./build/publish.ps1                     # win-x64 (installateur + portable) + linux-x64 → artifacts/publish/
+./build/publish.ps1                            # win-x64 (installer + portable) and linux-x64
 ./build/publish.ps1 -Runtime win-x64,win-arm64
-./build/publish.ps1 -Runtime win-x64
-./build/publish.ps1 -SkipInstaller      # sans Inno Setup
+./build/publish.ps1 -SkipInstaller             # without Inno Setup
 ```
-
-L'installateur Windows (`packaging/windows/BootVideoManager.iss`) nécessite [Inno Setup 6](https://jrsoftware.org/isinfo.php)
-(`winget install JRSoftware.InnoSetup`).
-
-**Releases automatiques** : pousser un tag `vX.Y.Z` (identique à `<Version>` de `Directory.Build.props`) lance
-`.github/workflows/release.yml`, qui teste, construit l'installateur, l'exe portable et l'archive Linux, puis les
-joint à la release GitHub avec leurs empreintes SHA-256 (`SHA256SUMS.txt`, indispensable aux mises à jour
-automatiques). Les notes de version sont lues dans `docs/release-notes/<tag>.md` ; un tag avec suffixe
-(`v1.1.0-beta`) crée une pré-version, que l'application ne propose pas.
 
 ```bash
-./build/publish.sh linux-x64            # sous Linux (conserve le bit exécutable)
-./packaging/linux/build-appimage.sh     # AppImage, nécessite appimagetool
+./build/publish.sh linux-x64                   # on Linux (keeps the executable bit)
+./packaging/linux/build-appimage.sh            # AppImage, requires appimagetool
 ```
 
-## Architecture
+### Releasing
+
+1. Bump `<Version>` in `Directory.Build.props`.
+2. Optionally write the release notes in `docs/release-notes/v<version>.md`.
+3. Push a matching tag: `git tag v1.2.0 && git push origin v1.2.0`.
+
+[`release.yml`](.github/workflows/release.yml) then runs the tests, builds the x64 and ARM64 installers and portable
+executables plus the Linux archive, and publishes them with `SHA256SUMS.txt` — which the in-app updater requires.
+Tags with a suffix (`v1.2.0-beta`) become pre-releases, which the app never offers.
+
+### Project layout
 
 ```
-src/BootVideoManager.Core    Services sans UI, entièrement testés
-  Api/       client steamdeckrepo.com, parseur tolérant, nouvelles tentatives polies
-  Updates/   vérification des Releases GitHub, téléchargement vérifié de l'installateur
-  Localization/  choix français / anglais
-  Catalog/   cache disque, rafraîchissement conditionnel, recherche / filtres / tris
-  Install/   téléchargement vérifié et repris après coupure, manifeste, réconciliation, désinstallation sûre
-  Steam/     détection des installations Steam
-  Caching/   cache des miniatures
-  Platform/  chemins de l'application, réglages, journal
-src/BootVideoManager.App     Avalonia 12 + CommunityToolkit.Mvvm (Views / ViewModels / Services / Controls)
-tests/BootVideoManager.Core.Tests   xUnit v3 (179 tests)
-tests/BootVideoManager.App.Tests    tests d'interface Avalonia headless (11 tests)
-packaging/windows                   installateur Inno Setup (mode mise à jour /UPDATE=1)
+src/BootVideoManager.Core          UI-independent services, fully unit tested
+  Api/            steamdeckrepo.com client, tolerant parser, polite retries
+  Catalog/        disk cache, conditional refresh, search / filters / sorting
+  Install/        verified and resumable downloads, manifest, safe removal
+  Updates/        GitHub release check, verified installer download
+  Steam/          Steam installation detection
+  Caching/        thumbnail cache
+  Localization/   French / English
+  Platform/       app folders, settings, log
+src/BootVideoManager.App           Avalonia 12 + CommunityToolkit.Mvvm (Views, ViewModels, Services, Controls)
+tests/BootVideoManager.Core.Tests  xUnit v3
+tests/BootVideoManager.App.Tests   headless Avalonia UI tests
+packaging/windows                  Inno Setup script (silent update mode: /UPDATE=1)
+packaging/linux                    AppImage script and desktop entry
 ```
 
-Détails et justifications : [docs/architecture.md](docs/architecture.md). Analyse de l'API et des chemins Steam :
+Design notes: [docs/architecture.md](docs/architecture.md) · API and Steam paths research:
 [docs/research.md](docs/research.md).
 
-### Données locales
+## Known limitations
 
-| | Windows | Linux |
-|---|---|---|
-| Manifeste et réglages | `%APPDATA%\BootVideoManager\` | `~/.config/BootVideoManager/` |
-| Cache (catalogue, miniatures, mises à jour) | `%LOCALAPPDATA%\BootVideoManager\cache\` | `~/.cache/BootVideoManager/` |
-| Journaux | `%LOCALAPPDATA%\BootVideoManager\logs\` | `~/.local/state/BootVideoManager/logs/` |
+- **Tested on Windows 11 only.** The Linux code (paths, Flatpak/Snap) is unit tested but has not run on a real
+  Steam Deck.
+- **No OLED / LCD filter**: steamdeckrepo.com does not provide that information.
+- **Linux previews** depend on the system libvlc; there is no Flatpak package yet.
+- **Controller use**: keyboard navigation, visible focus and infinite scrolling work, but there is no dedicated
+  Game Mode interface yet.
+- Suspend animations install like startup videos; selecting them as the resume animation has not been verified on a
+  Deck.
 
-Le cache peut être supprimé sans risque. Le manifeste mémorise ce que l'application a installé ; s'il est
-supprimé, les vidéos restent en place et demandent simplement une confirmation avant suppression.
+## Contributing
 
-## Respect du site
+Bug reports and pull requests are welcome. Please run `dotnet test --solution BootVideoManager.slnx` before opening a
+pull request, and attach the day's log file to bug reports.
 
-- Un seul appel au catalogue complet, mis en cache **une heure**, puis requêtes conditionnelles
-  (`If-Modified-Since` → réponse 304 sans contenu) ; rafraîchissement manuel limité à une fois par minute.
-- Recherche, tri et filtres **en local** : aucune requête pendant la navigation.
-- Miniatures en cache disque, 4 téléchargements simultanés au maximum.
-- User-Agent identifiable, respect de `Retry-After`, au plus 3 tentatives, jamais de boucle.
-- Les téléchargements passent par le lien officiel du site (`/post/download/{id}`).
+## License
 
-## Limites connues
+[MIT](LICENSE). Videos from the catalog remain the property of their authors.
 
-- **Testé sous Windows 11 uniquement.** Le code Linux (chemins, Flatpak/Snap) est couvert par des tests unitaires
-  mais n'a pas été essayé sur un Steam Deck réel.
-- **Pas de filtre OLED / LCD** : steamdeckrepo.com ne fournit pas cette information.
-- **Aperçu sous Linux** : dépend de la libvlc du système ; pas de paquet Flatpak pour l'instant (il faudrait y
-  embarquer VLC). Le script AppImage n'a pas été exécuté (nécessite Linux).
-- **Mode manette** : navigation clavier et repères de focus renforcés, défilement infini ; pas encore d'interface
-  dédiée au mode Jeu du Deck.
-- Les vidéos de veille s'installent comme les vidéos de démarrage ; leur sélection comme vidéo de sortie de
-  veille dans Steam n'a pas été vérifiée sur un Deck.
+## Credits
 
-## Licence
-
-[MIT](LICENSE). Les vidéos du catalogue restent la propriété de leurs auteurs.
-
-## Crédits
-
-- Catalogue, miniatures et vidéos : [steamdeckrepo.com](https://steamdeckrepo.com/) et ses créateurs.
-- Projets ayant inspiré l'intégration : [steam-deck-repo-manager](https://github.com/waylaidwanderer/steam-deck-repo-manager)
-  et le Steam Repo Manager historique de CapitaineJSparrow.
-- [Avalonia](https://avaloniaui.net/), [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet),
-  [LibVLCSharp](https://github.com/videolan/libvlcsharp), [System.IO.Abstractions](https://github.com/TestableIO/System.IO.Abstractions).
+- Catalog, thumbnails and videos: [steamdeckrepo.com](https://steamdeckrepo.com/) and its creators.
+- Inspiration: [steam-deck-repo-manager](https://github.com/waylaidwanderer/steam-deck-repo-manager) and
+  CapitaineJSparrow's original Steam Repo Manager.
+- Built with [Avalonia](https://avaloniaui.net/), [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet),
+  [LibVLCSharp](https://github.com/videolan/libvlcsharp) and
+  [System.IO.Abstractions](https://github.com/TestableIO/System.IO.Abstractions).
