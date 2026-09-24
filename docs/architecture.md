@@ -1,55 +1,55 @@
 # Architecture
 
-Voir [research.md](research.md) pour les constats sur l'API et Steam.
+See [research.md](research.md) for the findings about the API and Steam.
 
-## Décisions
+## Decisions
 
-| Sujet | Décision | Raison |
+| Topic | Decision | Reason |
 |---|---|---|
-| Runtime | **.NET 10 (LTS)** | .NET 8 sort du support le 2026-11-10 ; .NET 10 est supporté jusqu'en novembre 2028. |
-| UI | Avalonia 12 + CommunityToolkit.Mvvm (propriétés partielles `[ObservableProperty]`) | Cross-platform Windows / Linux / Steam Deck. |
-| Source catalogue | `/api/posts/all` en cache disque, rafraîchi au plus 1×/h via `If-Modified-Since` | 1 requête (souvent 304) au lieu de dizaines de pages ; l'API paginée n'a pas de méta et ignore `type`/`duration`. |
-| Recherche / tri / filtres | En local sur le catalogue | ~8 400 entrées : instantané, zéro charge serveur, fonctionne hors ligne. |
-| Tri « Tendances » | Ordre récupéré via `/api/posts?sort=trending&per_page=…` (rare, mis en cache) | Formule serveur non reproductible localement. |
-| Filtre OLED / LCD | **Abandonné** | Donnée absente de l'API. Remplacé par : type (démarrage / veille), appareil, durée. |
-| Vidéos de veille | Incluses, installées comme les autres (`{slug}_{id}.webm`) | Steam les propose dans Personnalisation (« Use as Wake Movie ») ; on n'écrase jamais un fichier existant. |
-| Téléchargement | `/post/download/{id}` (redirection) + fichier `.part` + renommage atomique | Passe par le lien officiel du site ; pas de fichier à moitié écrit. |
-| Nom de fichier | `{slug}_{id}.webm`, slug assaini | 246 slugs dupliqués dans le catalogue. |
-| Preview | LibVLCSharp, rendu dans un `WriteableBitmap` (callbacks vidéo) | Évite le problème « airspace » du `VideoView` natif (overlays, mode manette). |
-| Tests | xUnit v3 (Microsoft.Testing.Platform) + System.IO.Abstractions.TestingHelpers + FakeTimeProvider | Pas de dépendance à licence commerciale (FluentAssertions ≥ 8) ; .NET 10 impose MTP pour `dotnet test`. |
-| Activer / désactiver | Déplacement vers `uioverrides/movies_disabled/` (dossier voisin, non lu par Steam) ; intros d'origine (`steamui/movies`) activées par copie `steam_default_{nom}.webm` suivie dans le manifeste (`source: SteamBuiltIn`) | La lecture aléatoire de Steam pioche dans tout `uioverrides/movies` : la présence du fichier *est* la sélection. Rien n'est retéléchargé ni supprimé, et on ne touche jamais aux fichiers de Steam. |
-| Cache de Steam | `config/communityitemscache/startupmovies` listé aussi (hors manifeste), désactivation vers `startupmovies_disabled/` ; les objets de la boutique (`{communityitemid}_{sha1}.webm`) sont affichés mais jamais déplacés ni supprimés | Steam y met les intros achetées, mais la lecture aléatoire joue aussi tout `.webm` déposé là à la main : sans ça, des intros « invisibles » passent au démarrage. |
-| Test manuel | Option `--steam-root <dossier>` | Essayer l'application sur une copie sans toucher au vrai dossier Steam. |
+| Runtime | **.NET 10 (LTS)** | .NET 8 leaves support on 2026-11-10; .NET 10 is supported until November 2028. |
+| UI | Avalonia 12 + CommunityToolkit.Mvvm (partial `[ObservableProperty]` properties) | Cross-platform Windows / Linux / Steam Deck. |
+| Catalog source | `/api/posts/all` cached on disk, refreshed at most once an hour with `If-Modified-Since` | 1 request (often a 304) instead of dozens of pages; the paginated API has no metadata and ignores `type`/`duration`. |
+| Search / sort / filters | Run locally on the catalog | ~8,400 entries: instant, zero server load, works offline. |
+| "Trending" sort | Order fetched from `/api/posts?sort=trending&per_page=…` (rarely, cached) | The server formula cannot be reproduced locally. |
+| OLED / LCD filter | **Dropped** | Not present in the API. Replaced by: type (boot / wake), device, duration. |
+| Wake videos | Included, installed like the others (`{slug}_{id}.webm`) | Steam offers them in Customization ("Use as Wake Movie"); an existing file is never overwritten. |
+| Download | `/post/download/{id}` (redirect) + `.part` file + atomic rename | Goes through the site's official link; never a half-written file. |
+| File name | `{slug}_{id}.webm`, sanitized slug | 246 duplicate slugs in the catalog. |
+| Preview | LibVLCSharp, rendered into a `WriteableBitmap` (video callbacks) | Avoids the "airspace" problem of the native `VideoView` (overlays, controller mode). |
+| Tests | xUnit v3 (Microsoft.Testing.Platform) + System.IO.Abstractions.TestingHelpers + FakeTimeProvider | No commercially licensed dependency (FluentAssertions ≥ 8); .NET 10 requires MTP for `dotnet test`. |
+| Enable / disable | Move to `uioverrides/movies_disabled/` (sibling folder, not read by Steam); Steam's built-in intros (`steamui/movies`) are enabled by copying them to `steam_default_{name}.webm`, tracked in the manifest (`source: SteamBuiltIn`) | Steam's shuffle picks from all of `uioverrides/movies`: the file being there *is* the selection. Nothing is re-downloaded or deleted, and Steam's own files are never touched. |
+| Steam cache | `config/communityitemscache/startupmovies` is listed too (outside the manifest), disabling moves to `startupmovies_disabled/`; store items (`{communityitemid}_{sha1}.webm`) are shown but never moved or deleted | Steam stores purchased intros there, but the shuffle also plays any `.webm` dropped there by hand: without this, "invisible" intros play at startup. |
+| Manual testing | `--steam-root <folder>` option | Try the app on a copy without touching the real Steam folder. |
 
-## Couches
+## Layers
 
 ```
-src/BootVideoManager.Core           bibliothèque sans UI, 100 % testable
+src/BootVideoManager.Core           UI-free library, 100% testable
   Models/       Post, PostAuthor, VideoType, DeviceTag, CatalogQuery, InstalledVideo, Manifest
-  Api/          RepoApiClient      HTTP + JSON (source-generated), User-Agent identifiable
-                RepoJsonContext    contexte System.Text.Json
-  Catalog/      CatalogCache       fichier cache + Last-Modified
-                CatalogService     chargement / rafraîchissement / requêtes locales
-  Steam/        ISteamLocator      Windows (registre), Linux (natif, Flatpak, Snap)
-  Install/      InstallService     download → .part → move ; listing réconcilié (suivi / modifié / ajouté
-                                   hors app) ; uninstall avec garde-fous ; import local
-                ManifestStore      JSON atomique dans le dossier de config de l'app
-                VideoFileNames     noms de fichiers sûrs et validation anti-traversée
-  Caching/      ThumbnailCache     cache disque des miniatures
+  Api/          RepoApiClient      HTTP + JSON (source-generated), identifiable User-Agent
+                RepoJsonContext    System.Text.Json context
+  Catalog/      CatalogCache       cache file + Last-Modified
+                CatalogService     loading / refreshing / local queries
+  Steam/        ISteamLocator      Windows (registry), Linux (native, Flatpak, Snap)
+  Install/      InstallService     download → .part → move; reconciled listing (tracked / modified / added
+                                   outside the app); uninstall with safeguards; local import
+                ManifestStore      atomic JSON in the app's config folder
+                VideoFileNames     safe file names and path-traversal validation
+  Caching/      ThumbnailCache     on-disk thumbnail cache
   Platform/     AppPaths, SettingsStore
 src/BootVideoManager.App            Avalonia
-  Services/     AppServices (composition), InstallCoordinator (état partagé + confirmations),
-                IPlatformServices (sélecteurs de fichiers, ouverture d'URL), UserMessages
-  ViewModels/   MainWindow, Catalog, PostCard, PostDetail, Installed, Settings, dialogues
+  Services/     AppServices (composition), InstallCoordinator (shared state + confirmations),
+                IPlatformServices (file pickers, opening URLs), UserMessages
+  ViewModels/   MainWindow, Catalog, PostCard, PostDetail, Installed, Settings, dialogs
   Views/        MainWindow, CatalogView, InstalledView, SettingsView
   Controls/     VideoPreview + VlcFrameRenderer (libvlc → WriteableBitmap)
-tests/BootVideoManager.Core.Tests   parsing API, client HTTP, retries, cache, requêtes, install/désinstall,
-                                    manifeste, détection Steam, miniatures, réglages
+tests/BootVideoManager.Core.Tests   API parsing, HTTP client, retries, cache, queries, install/uninstall,
+                                    manifest, Steam detection, thumbnails, settings
 ```
 
-## Manifeste
+## Manifest
 
-Emplacement : `%APPDATA%\BootVideoManager\manifest.json` (Windows) ou `$XDG_CONFIG_HOME/BootVideoManager/manifest.json` (Linux, défaut `~/.config`).
+Location: `%APPDATA%\BootVideoManager\manifest.json` (Windows) or `$XDG_CONFIG_HOME/BootVideoManager/manifest.json` (Linux, default `~/.config`).
 
 ```json
 {
@@ -71,14 +71,14 @@ Emplacement : `%APPDATA%\BootVideoManager\manifest.json` (Windows) ou `$XDG_CONF
 }
 ```
 
-Règles :
-- Seuls les fichiers présents dans le manifeste **et** dont le SHA-256 correspond sont supprimés sans confirmation.
-- Fichier modifié ou inconnu du manifeste → confirmation explicite.
-- Entrée dont le fichier a disparu (ni dans `movies/` ni dans `movies_disabled/`) → nettoyée du manifeste à la réconciliation.
-- Intros d'origine de Steam : jamais supprimées ; « désactiver » retire seulement la copie suivie (refusé si elle a été modifiée).
+Rules:
+- Only files that are in the manifest **and** whose SHA-256 matches are deleted without confirmation.
+- A modified file, or one unknown to the manifest → explicit confirmation.
+- An entry whose file has disappeared (neither in `movies/` nor in `movies_disabled/`) → removed from the manifest during reconciliation.
+- Steam's built-in intros: never deleted; "disable" only removes the tracked copy (refused if it was modified).
 
-## Réseau
+## Network
 
-- Un `HttpClient` partagé, décompression gzip/brotli, timeout, User-Agent `BootVideoManager/<version> (+<repo url>)`.
-- Respect de `429` / `Retry-After`, 3 tentatives max avec back-off ; aucune boucle.
-- Erreurs réseau converties en exceptions métier (`RepoApiException`) affichées comme messages clairs.
+- One shared `HttpClient`, gzip/brotli decompression, timeout, User-Agent `BootVideoManager/<version> (+<repo url>)`.
+- Honors `429` / `Retry-After`, at most 3 attempts with back-off; no loops.
+- Network errors are turned into domain exceptions (`RepoApiException`) shown as clear messages.

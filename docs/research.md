@@ -1,41 +1,41 @@
-# Recherche — API steamdeckrepo.com & intégration Steam
+# Research — steamdeckrepo.com API & Steam integration
 
-_Relevé effectué le 2026-09-16, requêtes manuelles peu nombreuses avec un User-Agent identifiable._
+_Surveyed on 2026-09-16, with a handful of manual requests and an identifiable User-Agent._
 
-## Projets de référence
+## Reference projects
 
-| Projet | État | Ce qu'on en retient |
+| Project | Status | What we take from it |
 |---|---|---|
-| `CapitaineJSparrow/steam-repo-manager` | **Supprimé** de GitHub ; paquet Flathub `com.steamdeckrepo.manager` archivé | — |
-| `cmontesano/steam-repo-manager` (fork, 2022) | Figé | `GET /api/posts?page=N`. **Anti-pattern** : vide tout `movies/` avant chaque install. |
-| `waylaidwanderer/steam-deck-repo-manager` (manager officiel, Python/PySide6, 2026) | Actif | `GET /api/posts/all` + cache disque, download via `/post/download/{id}`, fichier `{slug}.webm`, métadonnées dans `movies/.manager/`, suspend → `deck-suspend-animation.webm` + `.bak`. |
+| `CapitaineJSparrow/steam-repo-manager` | **Deleted** from GitHub; Flathub package `com.steamdeckrepo.manager` archived | — |
+| `cmontesano/steam-repo-manager` (fork, 2022) | Frozen | `GET /api/posts?page=N`. **Anti-pattern**: empties the whole `movies/` folder before every install. |
+| `waylaidwanderer/steam-deck-repo-manager` (official manager, Python/PySide6, 2026) | Active | `GET /api/posts/all` + disk cache, download through `/post/download/{id}`, `{slug}.webm` file, metadata in `movies/.manager/`, suspend → `deck-suspend-animation.webm` + `.bak`. |
 
 ## Endpoints
 
-Site Laravel + Inertia/Vue. Routes publiques exposées par Ziggy dans le HTML (`api.posts.index`, `api.posts.all`, `post.download`, `post.show`).
+Laravel + Inertia/Vue site. Public routes are exposed by Ziggy in the HTML (`api.posts.index`, `api.posts.all`, `post.download`, `post.show`).
 
 ### `GET https://steamdeckrepo.com/api/posts/all`
-- Réponse : `{ "posts": Post[], "last_cached_at": <unix seconds> }` — ~8 400 posts, 7,5 Mo (1,9 Mo gzip).
-- Régénéré côté serveur environ toutes les heures (`Cache-Control: private, max-age=3600`).
-- `Last-Modified` renvoyé ; **`If-Modified-Since` → 304** : rafraîchissement conditionnel quasi gratuit.
+- Response: `{ "posts": Post[], "last_cached_at": <unix seconds> }` — ~8,400 posts, 7.5 MB (1.9 MB gzipped).
+- Regenerated server-side about once an hour (`Cache-Control: private, max-age=3600`).
+- `Last-Modified` is returned; **`If-Modified-Since` → 304**: conditional refresh is almost free.
 
 ### `GET https://steamdeckrepo.com/api/posts`
-- Réponse : `{ "posts": Post[], "sortOptions": {key: label}, "currentSort": string }` — **aucune méta de pagination**.
-- Paramètres respectés : `page`, `per_page` (plafonné à 100), `sort`, `search`, `device`.
-- Paramètres **ignorés** : `duration`, `type` (mélange boot et suspend).
+- Response: `{ "posts": Post[], "sortOptions": {key: label}, "currentSort": string }` — **no pagination metadata**.
+- Honored parameters: `page`, `per_page` (capped at 100), `sort`, `search`, `device`.
+- **Ignored** parameters: `duration`, `type` (boot and suspend are mixed).
 - `sort` ∈ `trending`, `downloads-desc`, `likes-desc`, `created_at-desc`, `created_at-asc`.
 
 ### `GET https://steamdeckrepo.com/post/download/{id}`
-- `302` vers une URL Backblaze B2 pré-signée (expire en 300 s), `content-disposition: attachment; filename="{slug}.webm"`.
-- C'est le lien de téléchargement officiel du site (il alimente vraisemblablement le compteur `downloads` — non vérifié).
+- `302` to a pre-signed Backblaze B2 URL (expires in 300 s), `content-disposition: attachment; filename="{slug}.webm"`.
+- This is the site's official download link (it probably feeds the `downloads` counter — not verified).
 
 ### CDN `https://cdn.steamdeckrepo.com/{videos,thumbnails,previews}/…`
-- `Accept-Ranges: bytes`, `Content-Length`, `Cache-Control: max-age=31536000` → reprise de téléchargement et cache long possibles.
+- `Accept-Ranges: bytes`, `Content-Length`, `Cache-Control: max-age=31536000` → resumable downloads and long caching are possible.
 
-### Limites de débit
-- `x-ratelimit-limit: 60` / min sur `/api/*`, `100` / min sur `/post/download/*`.
+### Rate limits
+- `x-ratelimit-limit: 60` / min on `/api/*`, `100` / min on `/post/download/*`.
 
-## Modèle `Post`
+## `Post` model
 
 ```json
 {
@@ -58,32 +58,32 @@ Site Laravel + Inertia/Vue. Routes publiques exposées par Ziggy dans le HTML (`
 }
 ```
 
-Particularités observées sur le catalogue complet :
-- `type` : `boot_video` (7 609), `suspend_video` (809), `boot_video_removed` (3 → à masquer). Valeurs inconnues à tolérer.
-- `devices` : `steam_deck`, `steam_machine` ; le front connaît aussi `steam_frame`. Valeurs inconnues à tolérer.
-- `video_duration` peut être `null` ; `video_preview` peut être `null` ou hébergé sur imgur ; `content` souvent vide.
-- **246 slugs dupliqués** → le nom de fichier local doit inclure l'`id`.
-- **Aucune information OLED/LCD** → filtre non implémentable.
-- `url` est en `http://`.
+Quirks observed across the full catalog:
+- `type`: `boot_video` (7,609), `suspend_video` (809), `boot_video_removed` (3 → to hide). Unknown values must be tolerated.
+- `devices`: `steam_deck`, `steam_machine`; the front end also knows `steam_frame`. Unknown values must be tolerated.
+- `video_duration` can be `null`; `video_preview` can be `null` or hosted on imgur; `content` is often empty.
+- **246 duplicate slugs** → the local file name must include the `id`.
+- **No OLED/LCD information** → that filter cannot be implemented.
+- `url` uses `http://`.
 
-## Emplacements Steam
+## Steam locations
 
-| Plateforme | Détection | Dossier cible |
+| Platform | Detection | Target folder |
 |---|---|---|
-| Windows | `HKCU\Software\Valve\Steam\SteamPath` (minuscules, `/` — normaliser), repli `HKLM\SOFTWARE\WOW6432Node\Valve\Steam\InstallPath`, puis `C:\Program Files (x86)\Steam` | `<Steam>\config\uioverrides\movies\` |
+| Windows | `HKCU\Software\Valve\Steam\SteamPath` (lowercase, `/` — normalize), fallback `HKLM\SOFTWARE\WOW6432Node\Valve\Steam\InstallPath`, then `C:\Program Files (x86)\Steam` | `<Steam>\config\uioverrides\movies\` |
 | Linux / Steam Deck | `~/.steam/root`, `~/.steam/steam`, `~/.local/share/Steam` | `<Steam>/config/uioverrides/movies/` |
-| Linux Flatpak | `~/.var/app/com.valvesoftware.Steam/.local/share/Steam`, `~/.var/app/com.valvesoftware.Steam/data/Steam` | idem |
-| Linux Snap | `~/snap/steam/common/.local/share/Steam` | idem |
+| Linux Flatpak | `~/.var/app/com.valvesoftware.Steam/.local/share/Steam`, `~/.var/app/com.valvesoftware.Steam/data/Steam` | same |
+| Linux Snap | `~/snap/steam/common/.local/share/Steam` | same |
 
-- Le dossier `uioverrides/movies` n'existe pas par défaut : le créer.
-- Format : vrai WebM (renommer un MP4 donne un écran noir), 1280×800, ≤ 30 s recommandé.
-- L'utilisateur choisit la vidéo dans **Paramètres > Personnalisation** (option « Use as Wake Movie » pour la sortie de veille).
-- Sous Windows, la vidéo ne joue qu'au lancement en **Big Picture**.
-- Une vidéo corrompue peut bloquer le Deck sur écran noir : supprimer le fichier restaure l'animation par défaut.
+- The `uioverrides/movies` folder does not exist by default: create it.
+- Format: a real WebM (renaming an MP4 gives a black screen), 1280×800, ≤ 30 s recommended.
+- The user picks the video in **Settings > Customization** ("Use as Wake Movie" option for resuming from sleep).
+- On Windows, the video only plays when **Big Picture** starts.
+- A corrupted video can leave the Deck on a black screen: deleting the file restores the default animation.
 
-## Pratiques des mod managers retenues
+## Mod manager practices we kept
 
-- **Vortex** : manifeste de déploiement + détection des fichiers modifiés en dehors du manager → manifeste avec SHA-256, comparaison avant suppression.
-- **Mod Organizer 2 / r2modman** : profils → peu utiles ici (Steam gère la sélection active) ; reportés.
-- **Decky Loader** : désinstallation propre, rien laissé derrière.
-- **Transactions** : téléchargement en `.part` dans le dossier cible, vérification de taille, renommage atomique ; manifeste écrit via fichier temporaire + remplacement.
+- **Vortex**: deployment manifest + detection of files modified outside the manager → manifest with SHA-256, compared before deleting.
+- **Mod Organizer 2 / r2modman**: profiles → of little use here (Steam handles the active selection); postponed.
+- **Decky Loader**: clean uninstall, nothing left behind.
+- **Transactions**: download to a `.part` file in the target folder, size check, atomic rename; manifest written through a temporary file + replace.
