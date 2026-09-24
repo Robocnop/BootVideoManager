@@ -30,7 +30,7 @@
 #define AppName "Boot Video Manager"
 #define AppExe "BootVideoManager.exe"
 #define AppPublisher "Robocnop"
-#define AppUrl "https://github.com/Robocnop/SteamBigStartup_launcher"
+#define AppUrl "https://github.com/Robocnop/BootVideoManager"
 
 [Setup]
 ; Never change AppId: it is how Windows recognises upgrades and the uninstaller.

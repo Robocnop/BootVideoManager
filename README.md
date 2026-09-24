@@ -43,7 +43,7 @@ Application desktop multiplateforme (Windows, Linux / Steam Deck) en C# / .NET 1
   manuel possible et mémorisé.
 - **Hors ligne** : le dernier catalogue connu reste consultable, avec un message clair.
 - **Mises à jour automatiques** : au démarrage, l'application consulte les
-  [Releases GitHub](https://github.com/Robocnop/SteamBigStartup_launcher/releases) et propose la nouvelle version ;
+  [Releases GitHub](https://github.com/Robocnop/BootVideoManager/releases) et propose la nouvelle version ;
   l'installateur est téléchargé, vérifié (taille et SHA-256 publiés avec la release), puis lancé, et l'application
   redémarre à jour. Version ignorable, vérification désactivable dans *Réglages*.
 - **Français / English** : langue du système par défaut, ou au choix dans *Réglages*.
@@ -59,7 +59,7 @@ Application desktop multiplateforme (Windows, Linux / Steam Deck) en C# / .NET 1
 
 **Installateur (recommandé)** : téléchargez `BootVideoManager-<version>-win-x64-setup.exe` (ou `win-arm64` pour
 les PC ARM) depuis les
-[Releases](https://github.com/Robocnop/SteamBigStartup_launcher/releases) et lancez-le. Il installe tous les
+[Releases](https://github.com/Robocnop/BootVideoManager/releases) et lancez-le. Il installe tous les
 composants (runtime .NET, Avalonia, VLC) dans le dossier choisi, crée un raccourci dans le menu Démarrer (et sur le
 Bureau si vous le cochez) et ajoute l'application à *Paramètres › Applications* pour la désinstaller. Aucun droit
 administrateur n'est demandé par défaut (installation pour l'utilisateur courant ; l'installation pour tous les

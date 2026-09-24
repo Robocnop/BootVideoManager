@@ -10,7 +10,7 @@ public sealed record RepoApiOptions
     /// Identifiable User-Agent, as asked by good API etiquette: product, version and a link to the project.
     /// </summary>
     public string UserAgent { get; init; } =
-        $"BootVideoManager/{typeof(RepoApiOptions).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"} (+https://github.com/Robocnop/SteamBigStartup_launcher)";
+        $"BootVideoManager/{typeof(RepoApiOptions).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"} (+https://github.com/Robocnop/BootVideoManager)";
 
     /// <summary>Per-request timeout. The full catalog is ~2 MB compressed, so keep this generous.</summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(60);

@@ -17,7 +17,7 @@ public sealed record UpdateOptions
 
     public string Owner { get; init; } = "Robocnop";
 
-    public string Repository { get; init; } = "SteamBigStartup_launcher";
+    public string Repository { get; init; } = "BootVideoManager";
 
     /// <summary>GitHub requires a User-Agent on API calls.</summary>
     public string UserAgent { get; init; } = "BootVideoManager";

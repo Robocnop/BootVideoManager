@@ -29,7 +29,7 @@ public sealed class UpdateServiceTests : IDisposable
     private static string ReleaseJson(string tag, bool prerelease = false, bool draft = false, long? installerSize = null) => $$"""
         {
           "tag_name": "{{tag}}",
-          "html_url": "https://github.com/Robocnop/SteamBigStartup_launcher/releases/tag/{{tag}}",
+          "html_url": "https://github.com/Robocnop/BootVideoManager/releases/tag/{{tag}}",
           "body": "Notes",
           "draft": {{(draft ? "true" : "false")}},
           "prerelease": {{(prerelease ? "true" : "false")}},
@@ -67,7 +67,7 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.Equal(InstallerName, update.Installer?.Name);
         Assert.Equal("SHA256SUMS.txt", update.Checksums?.Name);
         var request = Assert.Single(_http.Requests);
-        Assert.Equal(new Uri("https://api.github.com/repos/Robocnop/SteamBigStartup_launcher/releases/latest"), request.Uri);
+        Assert.Equal(new Uri("https://api.github.com/repos/Robocnop/BootVideoManager/releases/latest"), request.Uri);
         Assert.Equal("Tests", request.UserAgent);
     }
 

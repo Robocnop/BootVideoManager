@@ -9,6 +9,6 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <Version>1.0.0</Version>
     <Authors>Robocnop</Authors>
-    <RepositoryUrl>https://github.com/Robocnop/SteamBigStartup_launcher</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Robocnop/BootVideoManager</RepositoryUrl>
   </PropertyGroup>
 </Project>
