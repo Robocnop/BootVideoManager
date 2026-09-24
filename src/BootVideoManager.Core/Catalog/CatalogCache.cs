@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using BootVideoManager.Core.Platform;
 
 namespace BootVideoManager.Core.Catalog;
 
@@ -94,9 +95,7 @@ public sealed class CatalogCache
     private void WriteAtomically(string path, byte[] bytes)
     {
         _fileSystem.Directory.CreateDirectory(Directory);
-        var temporaryPath = path + ".tmp";
-        _fileSystem.File.WriteAllBytes(temporaryPath, bytes);
-        _fileSystem.File.Move(temporaryPath, path, overwrite: true);
+        JsonFile.WriteAtomically(_fileSystem, path, bytes);
     }
 }
 

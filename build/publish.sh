@@ -22,9 +22,9 @@ for rid in "${runtimes[@]}"; do
 
   archive="$output/BootVideoManager-$version-$rid"
   if [[ "$rid" == win-* ]]; then
-    # Single-file publish (see the App .csproj): the .exe alone is the whole application.
-    cp "$dir/BootVideoManager.exe" "$archive.exe"
-    echo "Created $archive.exe"
+    # Portable single-file publish (see the App .csproj). The installer needs Inno Setup: use build/publish.ps1.
+    cp "$dir/BootVideoManager.exe" "$archive-portable.exe"
+    echo "Created $archive-portable.exe"
   else
     chmod +x "$dir/BootVideoManager"
     tar -czf "$archive.tar.gz" -C "$dir" .

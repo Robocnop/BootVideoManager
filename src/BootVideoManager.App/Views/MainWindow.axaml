@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:BootVideoManager.App.ViewModels"
         xmlns:views="using:BootVideoManager.App.Views"
+        xmlns:l="using:BootVideoManager.App.Localization"
         x:Class="BootVideoManager.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="Boot Video Manager"
@@ -19,32 +20,32 @@
             <Border DockPanel.Dock="Top" Classes="topbar">
                 <Grid ColumnDefinitions="Auto,Auto,*">
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
-                                ToolTip.Tip="Vidéos de démarrage pour Steam Big Picture et Steam Deck">
+                                ToolTip.Tip="{x:Static l:Strings.AppTagline}">
                         <Image Source="/Assets/app-icon.png" Width="34" Height="34" VerticalAlignment="Center" />
                         <TextBlock Classes="app-title" Text="BOOT VIDEO MANAGER" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <ListBox Grid.Column="1" Classes="nav" Margin="28,0,0,0"
                              SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}"
-                             AutomationProperties.Name="Navigation">
+                             AutomationProperties.Name="{x:Static l:Strings.Navigation}">
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal" />
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                         <ListBoxItem>
-                            <TextBlock Text="CATALOGUE" LetterSpacing="0.8" />
+                            <TextBlock Text="{x:Static l:Strings.TabCatalog}" LetterSpacing="0.8" />
                         </ListBoxItem>
                         <ListBoxItem>
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="INSTALLÉES" LetterSpacing="0.8" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Static l:Strings.TabInstalled}" LetterSpacing="0.8" VerticalAlignment="Center" />
                                 <Border Classes="count">
                                     <TextBlock Text="{Binding InstalledCount}" />
                                 </Border>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem>
-                            <TextBlock Text="RÉGLAGES" LetterSpacing="0.8" />
+                            <TextBlock Text="{x:Static l:Strings.TabSettings}" LetterSpacing="0.8" />
                         </ListBoxItem>
                     </ListBox>
 
@@ -55,9 +56,28 @@
                 </Grid>
             </Border>
 
+            <!-- Update banner -->
+            <Border DockPanel.Dock="Top" Classes="banner-update" Margin="18,12,18,0"
+                    IsVisible="{Binding Updates.IsBannerVisible}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Updates.BannerText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        <ProgressBar Value="{Binding Updates.Progress}" IsVisible="{Binding Updates.IsDownloading}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
+                        <Button Content="{x:Static l:Strings.UpdateNotes}" Command="{Binding Updates.OpenReleaseNotesCommand}" />
+                        <Button Content="{x:Static l:Strings.UpdateSkip}" Command="{Binding Updates.SkipCommand}"
+                                IsEnabled="{Binding !Updates.IsDownloading}" />
+                        <Button Content="{x:Static l:Strings.UpdateLater}" Command="{Binding Updates.DismissCommand}"
+                                IsEnabled="{Binding !Updates.IsDownloading}" />
+                        <Button Classes="accent" Content="{Binding Updates.InstallButtonText}" Command="{Binding Updates.InstallCommand}"
+                                IsEnabled="{Binding !Updates.IsDownloading}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <Border DockPanel.Dock="Bottom" Classes="footer">
-                <TextBlock Classes="muted small" TextTrimming="CharacterEllipsis"
-                           Text="Catalogue et vidéos fournis par steamdeckrepo.com. Chaque vidéo appartient à son auteur. Application non officielle, sans lien avec Valve ni avec steamdeckrepo.com." />
+                <TextBlock Classes="muted small" TextTrimming="CharacterEllipsis" Text="{x:Static l:Strings.Footer}" />
             </Border>
 
             <Panel Margin="18,0">
@@ -74,7 +94,7 @@
         </DockPanel>
 
         <!-- Notification banner -->
-        <Border Classes="notification"
+        <Border x:Name="NotificationBanner" Classes="notification"
                 Classes.error="{Binding Notification.IsError, FallbackValue=False}"
                 IsVisible="{Binding Notification, Converter={x:Static ObjectConverters.IsNotNull}}"
                 HorizontalAlignment="Center" VerticalAlignment="Bottom"
@@ -82,13 +102,13 @@
             <Grid ColumnDefinitions="*,Auto">
                 <SelectableTextBlock Text="{Binding Notification.Message, FallbackValue=''}" Foreground="#FFFFFF"
                                      TextWrapping="Wrap" VerticalAlignment="Center" />
-                <Button Grid.Column="1" Content="Fermer" Margin="16,0,0,0" VerticalAlignment="Center"
+                <Button Grid.Column="1" Content="{x:Static l:Strings.Close}" Margin="16,0,0,0" VerticalAlignment="Center"
                         Command="{Binding Notification.DismissCommand, FallbackValue={x:Null}}" />
             </Grid>
         </Border>
 
         <!-- Confirmation dialog -->
-        <Grid Background="#B3000000"
+        <Grid x:Name="DialogOverlay" Background="#B3000000"
               IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}">
             <ContentControl Content="{Binding Dialog}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ContentControl.DataTemplates>
@@ -100,8 +120,8 @@
                                 <Border Classes="accent-rule" />
                                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
                                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
-                                    <Button Content="Annuler" Command="{Binding CancelCommand}" IsDefault="False" />
-                                    <Button Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}"
+                                    <Button x:Name="DialogCancelButton" Content="{x:Static l:Strings.Cancel}" Command="{Binding CancelCommand}" IsDefault="False" />
+                                    <Button x:Name="DialogConfirmButton" Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}"
                                             Classes.danger="{Binding IsDestructive}"
                                             Classes.accent="{Binding !IsDestructive}" />
                                 </StackPanel>

@@ -1,8 +1,9 @@
-using System.Buffers;
 using System.IO.Abstractions;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using BootVideoManager.Core.Api;
+using BootVideoManager.Core.Localization;
 using BootVideoManager.Core.Models;
 using BootVideoManager.Core.Platform;
 
@@ -17,8 +18,8 @@ public sealed class InstallService : IDisposable
     /// <summary>Hard cap protecting the disk against a wrong or hostile link.</summary>
     public const long MaxVideoBytes = 512L * 1024 * 1024;
 
-    /// <summary>Every WebM (Matroska/EBML) file starts with these bytes.</summary>
-    private static readonly byte[] WebmSignature = [0x1A, 0x45, 0xDF, 0xA3];
+    /// <summary>Attempts for one download: the first transfer plus resumes after interruptions.</summary>
+    private const int MaxDownloadAttempts = 4;
 
     private const int BufferSize = 81_920;
 
@@ -112,19 +113,19 @@ public sealed class InstallService : IDisposable
 
         if (!sourcePath.EndsWith(VideoFileNames.Extension, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InstallException(InstallErrorKind.InvalidFile, "Steam ne lit que les fichiers .webm.");
+            throw new InstallException(InstallErrorKind.InvalidFile, Loc.T("Steam ne lit que les fichiers .webm.", "Steam only plays .webm files."));
         }
 
         if (!_fileSystem.File.Exists(sourcePath))
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "Le fichier sélectionné n'existe pas.");
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Le fichier sélectionné n'existe pas.", "The selected file does not exist."));
         }
 
         EnsureDirectory(directory);
         var partPath = NewPartPath(directory, "import.webm");
         try
         {
-            var (sha256, size) = await CopyLocalFileAsync(sourcePath, partPath, "Impossible de lire le fichier sélectionné.", cancellationToken).ConfigureAwait(false);
+            var (sha256, size) = await CopyLocalFileAsync(sourcePath, partPath, Loc.T("Impossible de lire le fichier sélectionné.", "Could not read the selected file."), cancellationToken).ConfigureAwait(false);
 
             var fileName = VideoFileNames.ForLocalImport(_fileSystem.Path.GetFileName(sourcePath), sha256);
             if (await GetTrackedOrThrowIfConflictAsync(directory, fileName, cancellationToken).ConfigureAwait(false) is { } existing)
@@ -256,6 +257,11 @@ public sealed class InstallService : IDisposable
                 .ThenBy(v => v.DisplayTitle, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Typically a file removed or locked by Steam between listing and reading its size.
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible de lire le dossier des vidéos. Réessayez dans un instant.", "Could not read the videos folder. Try again in a moment."), ex);
+        }
         finally
         {
             _manifestLock.Release();
@@ -312,7 +318,7 @@ public sealed class InstallService : IDisposable
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de supprimer « {fileName} ». Steam est peut-être en train de la lire.", ex);
+                throw new InstallException(InstallErrorKind.FileSystem, Loc.T($"Impossible de supprimer « {fileName} ». Steam est peut-être en train de la lire.", $"Could not delete “{fileName}”. Steam may be playing it."), ex);
             }
 
             if (entry is not null)
@@ -342,7 +348,7 @@ public sealed class InstallService : IDisposable
         ArgumentNullException.ThrowIfNull(video);
         if (video.IsBuiltIn || video.IsSteamShopItem)
         {
-            throw new InstallException(InstallErrorKind.FileConflict, $"« {video.FileName} » est gérée par Steam et ne peut pas être supprimée.");
+            throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {video.FileName} » est gérée par Steam et ne peut pas être supprimée.", $"“{video.FileName}” is managed by Steam and cannot be deleted."));
         }
 
         if (!video.IsInSteamCache)
@@ -372,7 +378,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de supprimer « {video.FileName} ». Steam est peut-être en train de la lire.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T($"Impossible de supprimer « {video.FileName} ». Steam est peut-être en train de la lire.", $"Could not delete “{video.FileName}”. Steam may be playing it."), ex);
         }
 
         return UninstallOutcome.Deleted;
@@ -453,7 +459,7 @@ public sealed class InstallService : IDisposable
             }
             else if (await UninstallAsync(directory, copyName, userConfirmed: false, cancellationToken).ConfigureAwait(false) == UninstallOutcome.RequiresConfirmation)
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"« {copyName} » a été modifiée en dehors de l'application : supprimez-la plutôt depuis la liste.");
+                throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {copyName} » a été modifiée en dehors de l'application : supprimez-la plutôt depuis la liste.", $"“{copyName}” was modified outside the app: delete it from the list instead."));
             }
 
             return;
@@ -461,7 +467,7 @@ public sealed class InstallService : IDisposable
 
         if (video.IsSteamShopItem)
         {
-            throw new InstallException(InstallErrorKind.FileConflict, $"« {video.FileName} » provient de la Boutique des points Steam : gérez-la depuis Steam › Paramètres › Personnalisation.");
+            throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {video.FileName} » provient de la Boutique des points Steam : gérez-la depuis Steam › Paramètres › Personnalisation.", $"“{video.FileName}” comes from the Steam Points Shop: manage it in Steam › Settings › Customization."));
         }
 
         // Videos of Steam's startup movie cache are disabled next to that cache, the others next to the movies folder.
@@ -482,12 +488,12 @@ public sealed class InstallService : IDisposable
 
             if (!sourceExists)
             {
-                throw new InstallException(InstallErrorKind.FileSystem, $"« {video.FileName} » n'existe plus.");
+                throw new InstallException(InstallErrorKind.FileSystem, Loc.T($"« {video.FileName} » n'existe plus.", $"“{video.FileName}” no longer exists."));
             }
 
             if (targetExists)
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"« {video.FileName} » se trouve à la fois dans son dossier et dans le dossier des vidéos désactivées.");
+                throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {video.FileName} » se trouve à la fois dans son dossier et dans le dossier des vidéos désactivées.", $"“{video.FileName}” is both in its folder and in the disabled videos folder."));
             }
 
             EnsureDirectory(_fileSystem.Path.GetDirectoryName(to)!);
@@ -518,12 +524,12 @@ public sealed class InstallService : IDisposable
             }
 
             var entry = FindEntry(LoadManifest(), directory, fileName)
-                ?? throw new InstallException(InstallErrorKind.FileConflict, $"« {fileName} » existe déjà et n'a pas été ajoutée par cette application.");
+                ?? throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {fileName} » existe déjà et n'a pas été ajoutée par cette application.", $"“{fileName}” already exists and was not added by this app."));
 
             var (status, current) = await VerifyAsync(entry, existingPath, cancellationToken).ConfigureAwait(false);
             if (status != InstalledVideoStatus.Tracked)
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"« {fileName} » a été modifiée en dehors de l'application.");
+                throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {fileName} » a été modifiée en dehors de l'application.", $"“{fileName}” was modified outside the app."));
             }
 
             if (existingPath != path)
@@ -543,7 +549,7 @@ public sealed class InstallService : IDisposable
     private async Task EnableBuiltInAsync(string directory, string builtInFileName, CancellationToken cancellationToken)
     {
         var builtInDirectory = BuiltInVideos.DirectoryFor(_fileSystem, directory)
-            ?? throw new InstallException(InstallErrorKind.FileSystem, "Impossible de trouver le dossier des animations d'origine de Steam.");
+            ?? throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible de trouver le dossier des animations d'origine de Steam.", "Could not find Steam's stock animations folder."));
         var copyName = BuiltInVideos.CopyFileName(builtInFileName);
 
         if (await GetTrackedOrThrowIfConflictAsync(directory, copyName, cancellationToken).ConfigureAwait(false) is not null)
@@ -558,7 +564,7 @@ public sealed class InstallService : IDisposable
             var (sha256, size) = await CopyLocalFileAsync(
                 _fileSystem.Path.Combine(builtInDirectory, builtInFileName),
                 partPath,
-                $"Impossible de lire l'animation de Steam « {builtInFileName} ».",
+                Loc.T($"Impossible de lire l'animation de Steam « {builtInFileName} ».", $"Could not read the Steam animation “{builtInFileName}”."),
                 cancellationToken).ConfigureAwait(false);
 
             var entry = new ManifestEntry
@@ -582,22 +588,100 @@ public sealed class InstallService : IDisposable
 
     private async Task<(string Sha256, long Size)> CopyLocalFileAsync(string sourcePath, string partPath, string readError, CancellationToken cancellationToken)
     {
+        await using var writer = VerifiedFileWriter.Create(_fileSystem, partPath, MaxVideoBytes);
         try
         {
             await using var source = _fileSystem.FileStream.New(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
-            return await CopyVerifiedAsync(source, partPath, source.Length, null, cancellationToken).ConfigureAwait(false);
+            await writer.CopyFromAsync(source, source.Length, null, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new InstallException(InstallErrorKind.FileSystem, readError, ex);
         }
+
+        return await writer.CompleteAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Streams the video into <paramref name="partPath"/>. A transfer cut mid-way is resumed where it stopped (HTTP
+    /// range request), or restarted when the server ignores the range, a few times before giving up.
+    /// </summary>
     private async Task<(string Sha256, long Size)> DownloadAsync(Uri uri, string partPath, IProgress<DownloadProgress>? progress, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-        request.Headers.TryAddWithoutValidation("User-Agent", _options.UserAgent);
+        await using var writer = VerifiedFileWriter.Create(_fileSystem, partPath, MaxVideoBytes);
 
+        for (var attempt = 1; ; attempt++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.TryAddWithoutValidation("User-Agent", _options.UserAgent);
+            if (writer.Length > 0)
+            {
+                request.Headers.Range = new RangeHeaderValue(writer.Length, null);
+            }
+
+            using var response = await SendDownloadRequestAsync(request, cancellationToken).ConfigureAwait(false);
+
+            long? expectedTotal;
+            if (writer.Length > 0
+                && response.StatusCode == HttpStatusCode.PartialContent
+                && response.Content.Headers.ContentRange is { From: { } from } range
+                && from == writer.Length)
+            {
+                expectedTotal = range.Length ?? writer.Length + response.Content.Headers.ContentLength;
+            }
+            else
+            {
+                if (writer.Length > 0)
+                {
+                    writer.Reset(); // The server ignored the range and sends the whole file again.
+                }
+
+                expectedTotal = response.Content.Headers.ContentLength;
+            }
+
+            if (expectedTotal > MaxVideoBytes)
+            {
+                throw new InstallException(InstallErrorKind.InvalidFile, Loc.T("La vidéo est anormalement volumineuse.", "The video is abnormally large."));
+            }
+
+            Exception? interruption = null;
+            try
+            {
+                await using var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                await writer.CopyFromAsync(source, expectedTotal, progress, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or IOException && !cancellationToken.IsCancellationRequested)
+            {
+                interruption = ex; // Network failure while reading: disk failures are InstallException.
+            }
+
+            if (interruption is null && (expectedTotal is not { } expected || writer.Length == expected))
+            {
+                return await writer.CompleteAsync().ConfigureAwait(false);
+            }
+
+            if (interruption is null && writer.Length > expectedTotal)
+            {
+                throw new InstallException(InstallErrorKind.Download, Loc.T("Le serveur a envoyé plus de données qu'annoncé.", "The server sent more data than announced."));
+            }
+
+            if (attempt >= MaxDownloadAttempts)
+            {
+                throw new InstallException(
+                    InstallErrorKind.Download,
+                    interruption is null
+                        ? Loc.T("Le téléchargement est incomplet.", "The download is incomplete.")
+                        : Loc.T("Le téléchargement a été interrompu.", "The download was interrupted."),
+                    interruption);
+            }
+
+            await Task.Delay(_options.Retry.BaseDelay * attempt, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Sends a download request; connection failures and HTTP errors become <see cref="InstallException"/>.</summary>
+    private async Task<HttpResponseMessage> SendDownloadRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
         HttpResponseMessage response;
         try
         {
@@ -605,103 +689,25 @@ public sealed class InstallService : IDisposable
         }
         catch (HttpRequestException ex)
         {
-            throw new InstallException(InstallErrorKind.Download, "Impossible de joindre le serveur de téléchargement.", ex);
+            throw new InstallException(InstallErrorKind.Download, Loc.T("Impossible de joindre le serveur de téléchargement.", "Could not reach the download server."), ex);
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new InstallException(InstallErrorKind.Download, "Le serveur de téléchargement n'a pas répondu à temps.", ex);
+            throw new InstallException(InstallErrorKind.Download, Loc.T("Le serveur de téléchargement n'a pas répondu à temps.", "The download server did not answer in time."), ex);
         }
 
-        using (response)
+        if (!response.IsSuccessStatusCode)
         {
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new InstallException(
-                    InstallErrorKind.Download,
-                    response.StatusCode == HttpStatusCode.TooManyRequests
-                        ? "Trop de téléchargements en peu de temps. Réessayez dans une minute."
-                        : $"Le serveur de téléchargement a répondu par une erreur HTTP {(int)response.StatusCode}.");
-            }
-
-            var expectedLength = response.Content.Headers.ContentLength;
-            if (expectedLength > MaxVideoBytes)
-            {
-                throw new InstallException(InstallErrorKind.InvalidFile, "La vidéo est anormalement volumineuse.");
-            }
-
-            try
-            {
-                await using var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-                return await CopyVerifiedAsync(source, partPath, expectedLength, progress, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is HttpRequestException or IOException)
-            {
-                throw new InstallException(InstallErrorKind.Download, "Le téléchargement a été interrompu.", ex);
-            }
-        }
-    }
-
-    /// <summary>Streams to <paramref name="destinationPath"/> while hashing, checking the WebM signature as early as possible.</summary>
-    private async Task<(string Sha256, long Size)> CopyVerifiedAsync(
-        Stream source,
-        string destinationPath,
-        long? expectedLength,
-        IProgress<DownloadProgress>? progress,
-        CancellationToken cancellationToken)
-    {
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
-        var signature = new byte[WebmSignature.Length];
-        var signatureLength = 0;
-        long total = 0;
-
-        try
-        {
-            await using var destination = _fileSystem.FileStream.New(destinationPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, BufferSize, useAsync: true);
-
-            int read;
-            while ((read = await source.ReadAsync(buffer.AsMemory(0, BufferSize), cancellationToken).ConfigureAwait(false)) > 0)
-            {
-                if (signatureLength < signature.Length)
-                {
-                    var count = Math.Min(read, signature.Length - signatureLength);
-                    Array.Copy(buffer, 0, signature, signatureLength, count);
-                    signatureLength += count;
-                    if (signatureLength == signature.Length && !signature.AsSpan().SequenceEqual(WebmSignature))
-                    {
-                        throw NotWebm();
-                    }
-                }
-
-                total += read;
-                if (total > MaxVideoBytes)
-                {
-                    throw new InstallException(InstallErrorKind.InvalidFile, "La vidéo est anormalement volumineuse.");
-                }
-
-                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                hash.AppendData(buffer, 0, read);
-                progress?.Report(new DownloadProgress(total, expectedLength));
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(buffer);
+            var status = (int)response.StatusCode;
+            response.Dispose();
+            throw new InstallException(
+                InstallErrorKind.Download,
+                status == (int)HttpStatusCode.TooManyRequests
+                    ? Loc.T("Trop de téléchargements en peu de temps. Réessayez dans une minute.", "Too many downloads in a short time. Try again in a minute.")
+                    : Loc.T($"Le serveur de téléchargement a répondu par une erreur HTTP {status}.", $"The download server answered HTTP {status}."));
         }
 
-        if (signatureLength < signature.Length)
-        {
-            throw NotWebm();
-        }
-
-        if (expectedLength is { } expected && expected != total)
-        {
-            throw new InstallException(InstallErrorKind.Download, "Le téléchargement est incomplet.");
-        }
-
-        return (Convert.ToHexStringLower(hash.GetHashAndReset()), total);
-
-        static InstallException NotWebm() => new(InstallErrorKind.InvalidFile, "Ce fichier n'est pas une vidéo WebM.");
+        return response;
     }
 
     /// <summary>Moves the verified file into place and records it; rolls the file back if the manifest cannot be saved.</summary>
@@ -714,7 +720,7 @@ public sealed class InstallService : IDisposable
         {
             if (_fileSystem.File.Exists(targetPath))
             {
-                throw new InstallException(InstallErrorKind.FileConflict, $"« {entry.FileName} » est apparue dans le dossier des vidéos pendant le téléchargement.");
+                throw new InstallException(InstallErrorKind.FileConflict, Loc.T($"« {entry.FileName} » est apparue dans le dossier des vidéos pendant le téléchargement.", $"“{entry.FileName}” appeared in the videos folder during the download."));
             }
 
             try
@@ -723,7 +729,7 @@ public sealed class InstallService : IDisposable
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                throw new InstallException(InstallErrorKind.FileSystem, "Impossible de placer la vidéo dans le dossier des vidéos.", ex);
+                throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible de placer la vidéo dans le dossier des vidéos.", "Could not move the video into the videos folder."), ex);
             }
 
             var committed = entry with
@@ -776,7 +782,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de lire « {entry.FileName} ».", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T($"Impossible de lire « {entry.FileName} ».", $"Could not read “{entry.FileName}”."), ex);
         }
 
         return string.Equals(sha256, entry.Sha256, StringComparison.OrdinalIgnoreCase)
@@ -797,13 +803,13 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "Impossible de lire le dossier des vidéos.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible de lire le dossier des vidéos.", "Could not read the videos folder."), ex);
         }
     }
 
     private string SteamCacheDirectory(string directory) =>
         BuiltInVideos.SteamCacheDirectoryFor(_fileSystem, directory)
-        ?? throw new InstallException(InstallErrorKind.FileSystem, "Impossible de trouver le cache des vidéos de démarrage de Steam.");
+        ?? throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible de trouver le cache des vidéos de démarrage de Steam.", "Could not find Steam's startup movie cache."));
 
     /// <summary>Path of <paramref name="fileName"/> in <paramref name="directory"/>, else in its disabled folder; <c>null</c> if in neither.</summary>
     private string? FindVideoFile(string directory, string fileName) =>
@@ -819,7 +825,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de déplacer « {_fileSystem.Path.GetFileName(from)} ». Steam est peut-être en train de la lire.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T($"Impossible de déplacer « {_fileSystem.Path.GetFileName(from)} ». Steam est peut-être en train de la lire.", $"Could not move “{_fileSystem.Path.GetFileName(from)}”. Steam may be playing it."), ex);
         }
     }
 
@@ -831,7 +837,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "Impossible de lire le registre des installations.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible de lire le registre des installations.", "Could not read the install registry."), ex);
         }
     }
 
@@ -843,7 +849,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, "Impossible d'enregistrer le registre des installations.", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T("Impossible d'enregistrer le registre des installations.", "Could not save the install registry."), ex);
         }
     }
 
@@ -861,7 +867,7 @@ public sealed class InstallService : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            throw new InstallException(InstallErrorKind.FileSystem, $"Impossible de créer le dossier des vidéos : {directory}", ex);
+            throw new InstallException(InstallErrorKind.FileSystem, Loc.T($"Impossible de créer le dossier des vidéos : {directory}", $"Could not create the videos folder: {directory}"), ex);
         }
     }
 

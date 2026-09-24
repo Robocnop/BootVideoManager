@@ -13,7 +13,11 @@ public sealed class InstallServiceTests : IDisposable
 {
     private static readonly string MoviesDirectory = MockUnixSupport.Path(@"C:\Steam\config\uioverrides\movies");
     private static readonly string ManifestPath = MockUnixSupport.Path(@"C:\AppData\BootVideoManager\manifest.json");
-    private static readonly RepoApiOptions Options = new() { UserAgent = "BootVideoManager-Tests/1.0" };
+    private static readonly RepoApiOptions Options = new()
+    {
+        UserAgent = "BootVideoManager-Tests/1.0",
+        Retry = new RetryPolicyOptions { BaseDelay = TimeSpan.Zero },
+    };
 
     private readonly MockFileSystem _fileSystem = new();
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 9, 16, 20, 0, 0, TimeSpan.Zero));
@@ -553,6 +557,108 @@ public sealed class InstallServiceTests : IDisposable
 
         Assert.False(_fileSystem.File.Exists(CachePath("mnzge_MnZgE.webm")));
         Assert.Equal(["mnzge_MnZgE.webm"], FilesInMovies());
+    }
+
+    [Fact]
+    public async Task Install_InterruptedDownload_ResumesWhereItStopped()
+    {
+        var body = WebmBytes(200_000);
+        var ranges = new List<RangeHeaderValue?>();
+        _respond = request =>
+        {
+            ranges.Add(request.Headers.Range);
+            return ranges.Count == 1
+                ? StreamResponse(new FailingStream(body, failAfter: 70_000), body.Length)
+                : PartialResponse(body, from: request.Headers.Range!.Ranges.Single().From!.Value);
+        };
+
+        var video = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+
+        Assert.Equal(body, _fileSystem.File.ReadAllBytes(video.FullPath));
+        Assert.Equal(2, ranges.Count);
+        Assert.Null(ranges[0]);
+        Assert.Equal(70_000, ranges[1]!.Ranges.Single().From);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(body)), Assert.Single(_manifestStore.Load().Entries).Sha256);
+    }
+
+    [Fact]
+    public async Task Install_InterruptedDownload_RestartsWhenTheServerIgnoresTheRange()
+    {
+        var body = WebmBytes(150_000);
+        _respond = _ => _http.Requests.Count == 1
+            ? StreamResponse(new FailingStream(body, failAfter: 40_000), body.Length)
+            : WebmResponse(body);
+
+        var video = await _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct);
+
+        Assert.Equal(body, _fileSystem.File.ReadAllBytes(video.FullPath));
+        Assert.Equal(2, _http.Requests.Count);
+    }
+
+    [Fact]
+    public async Task Install_DownloadThatKeepsFailing_GivesUpAndLeavesNothing()
+    {
+        var body = WebmBytes(100_000);
+        _respond = _ => StreamResponse(new FailingStream(body, failAfter: 10_000), body.Length);
+
+        var ex = await Assert.ThrowsAsync<InstallException>(() => _service.InstallAsync(StarWars, MoviesDirectory, cancellationToken: Ct));
+
+        Assert.Equal(InstallErrorKind.Download, ex.Kind);
+        Assert.Equal(4, _http.Requests.Count);
+        Assert.Empty(FilesInMovies());
+    }
+
+    private static HttpResponseMessage StreamResponse(Stream stream, long length)
+    {
+        var content = new StreamContent(stream);
+        content.Headers.ContentLength = length;
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+    }
+
+    private static HttpResponseMessage PartialResponse(byte[] body, long from)
+    {
+        var content = new ByteArrayContent(body[(int)from..]);
+        content.Headers.ContentRange = new ContentRangeHeaderValue(from, body.Length - 1, body.Length);
+        return new HttpResponseMessage(HttpStatusCode.PartialContent) { Content = content };
+    }
+
+    /// <summary>Yields the first bytes of a body, then fails like a dropped connection.</summary>
+    private sealed class FailingStream(byte[] body, int failAfter) : Stream
+    {
+        private int _position;
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position { get => _position; set => throw new NotSupportedException(); }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            if (_position >= failAfter)
+            {
+                throw new IOException("Connection reset (simulated).");
+            }
+
+            var read = Math.Min(count, failAfter - _position);
+            Array.Copy(body, _position, buffer, offset, read);
+            _position += read;
+            return read;
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     /// <summary>Synchronous progress sink (the BCL Progress&lt;T&gt; posts asynchronously).</summary>

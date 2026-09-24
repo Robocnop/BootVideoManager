@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BootVideoManager.App.ViewModels"
+             xmlns:l="using:BootVideoManager.App.Localization"
              x:Class="BootVideoManager.App.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
@@ -9,20 +10,19 @@
 
             <Border Classes="panel">
                 <StackPanel Spacing="10">
-                    <TextBlock Classes="h2" Text="DOSSIER STEAM" />
+                    <TextBlock Classes="h2" Text="{x:Static l:Strings.SteamFolderTitle}" />
                     <Border Classes="accent-rule" Margin="0,0,0,4" />
                     <StackPanel Spacing="2">
-                        <TextBlock Classes="muted small" Text="Dossier utilisé" />
+                        <TextBlock Classes="muted small" Text="{x:Static l:Strings.FolderInUse}" />
                         <SelectableTextBlock Text="{Binding CurrentRoot}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     </StackPanel>
                     <StackPanel Spacing="2">
-                        <TextBlock Classes="muted small" Text="Les vidéos sont placées dans" />
+                        <TextBlock Classes="muted small" Text="{x:Static l:Strings.VideosGoTo}" />
                         <SelectableTextBlock Text="{Binding CurrentMoviesDirectory}" TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <TextBlock Classes="section" Text="INSTALLATIONS DÉTECTÉES" Margin="0,8,0,0" />
-                    <TextBlock Classes="muted small" TextWrapping="Wrap"
-                               Text="Le registre Windows, ~/.steam, ~/.local/share/Steam ainsi que les installations Flatpak et Snap sont analysés automatiquement."
+                    <TextBlock Classes="section" Text="{x:Static l:Strings.DetectedTitle}" Margin="0,8,0,0" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{x:Static l:Strings.DetectHint}"
                                IsVisible="{Binding !Detected.Count}" />
                     <ItemsControl ItemsSource="{Binding Detected}">
                         <ItemsControl.ItemTemplate>
@@ -33,7 +33,7 @@
                                             <TextBlock Text="{Binding RootPath}" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Classes="muted small" Text="{Binding KindLabel}" />
                                         </StackPanel>
-                                        <Button Grid.Column="1" Content="Utiliser" VerticalAlignment="Center"
+                                        <Button Grid.Column="1" Content="{x:Static l:Strings.Use}" VerticalAlignment="Center"
                                                 Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).UseDetectedCommand}"
                                                 CommandParameter="{Binding}" />
                                     </Grid>
@@ -43,8 +43,8 @@
                     </ItemsControl>
 
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Relancer la détection" Command="{Binding DetectInstallationsCommand}" />
-                        <Button Classes="accent" Content="Choisir un dossier…" Command="{Binding BrowseCommand}" />
+                        <Button Content="{x:Static l:Strings.Redetect}" Command="{Binding DetectInstallationsCommand}" />
+                        <Button Classes="accent" Content="{x:Static l:Strings.ChooseFolder}" Command="{Binding BrowseCommand}" />
                     </StackPanel>
                     <Border Classes="banner-error" IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                         <TextBlock Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
@@ -54,28 +54,63 @@
 
             <Border Classes="panel">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="h2" Text="UTILISER UNE VIDÉO DANS STEAM" />
+                    <TextBlock Classes="h2" Text="{x:Static l:Strings.HowToTitle}" />
                     <Border Classes="accent-rule" Margin="0,0,0,4" />
-                    <TextBlock TextWrapping="Wrap" Text="1. Installez une vidéo depuis le catalogue (ou importez un fichier .webm)." />
-                    <TextBlock TextWrapping="Wrap" Text="2. Dans Steam, ouvrez Paramètres › Personnalisation." />
-                    <TextBlock TextWrapping="Wrap" Text="3. Sélectionnez-la dans « Vidéo de démarrage ». Les animations de veille se choisissent de la même manière, dans la rubrique consacrée à la mise en veille." />
-                    <TextBlock Classes="muted small" TextWrapping="Wrap"
-                               Text="Sous Windows, la vidéo n'est lue qu'au lancement du mode Big Picture. Si Steam reste bloqué sur un écran noir, supprimez ou désactivez la vidéo depuis l'onglet Installées." />
+                    <TextBlock TextWrapping="Wrap" Text="{x:Static l:Strings.HowTo1}" />
+                    <TextBlock TextWrapping="Wrap" Text="{x:Static l:Strings.HowTo2}" />
+                    <TextBlock TextWrapping="Wrap" Text="{x:Static l:Strings.HowTo3}" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{x:Static l:Strings.HowToNote}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="panel">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="{x:Static l:Strings.UpdatesTitle}" />
+                    <Border Classes="accent-rule" Margin="0,0,0,4" />
+                    <CheckBox Content="{x:Static l:Strings.CheckAtStartup}" IsChecked="{Binding Updates.CheckOnStartup}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="{x:Static l:Strings.CheckNow}" Command="{Binding Updates.CheckNowCommand}"
+                                IsEnabled="{Binding Updates.IsIdle}" />
+                        <Button Classes="accent" Content="{Binding Updates.InstallButtonText}" Command="{Binding Updates.InstallCommand}"
+                                IsVisible="{Binding Updates.Available, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                IsEnabled="{Binding Updates.IsIdle}" />
+                        <Button Content="{x:Static l:Strings.ReleasesPage}" Command="{Binding Updates.OpenReleaseNotesCommand}" />
+                    </StackPanel>
+                    <ProgressBar IsIndeterminate="True" IsVisible="{Binding Updates.IsChecking}" />
+                    <ProgressBar Value="{Binding Updates.Progress}" IsVisible="{Binding Updates.IsDownloading}" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{Binding Updates.StatusText}"
+                               IsVisible="{Binding Updates.StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="panel">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="{x:Static l:Strings.LanguageTitle}" />
+                    <Border Classes="accent-rule" Margin="0,0,0,4" />
+                    <ComboBox Width="280" ItemsSource="{Binding LanguageOptions}" SelectedItem="{Binding SelectedLanguage}"
+                              AutomationProperties.Name="{x:Static l:Strings.LanguageTitle}" />
+                    <Border Classes="banner-warning" IsVisible="{Binding IsRestartRequired}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{Binding RestartHint}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="accent" Margin="12,0,0,0" Content="{x:Static l:Strings.RestartNow}"
+                                    Command="{Binding RestartCommand}" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
             </Border>
 
             <Border Classes="panel">
                 <StackPanel Spacing="8">
-                    <TextBlock Classes="h2" Text="À PROPOS" />
+                    <TextBlock Classes="h2" Text="{x:Static l:Strings.AboutTitle}" />
                     <Border Classes="accent-rule" Margin="0,0,0,4" />
-                    <TextBlock TextWrapping="Wrap"
-                               Text="Le catalogue, les miniatures et les vidéos proviennent de steamdeckrepo.com. Chaque vidéo reste l'œuvre de son auteur, crédité sur sa fiche. Merci à la communauté et à l'équipe du site." />
-                    <TextBlock Classes="muted small" TextWrapping="Wrap"
-                               Text="L'application sollicite le site avec modération : catalogue conservé en cache pendant une heure, requêtes conditionnelles, miniatures mises en cache et identification claire (User-Agent)." />
+                    <TextBlock TextWrapping="Wrap" Text="{x:Static l:Strings.AboutText}" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{x:Static l:Strings.AboutPolite}" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{x:Static l:Strings.LogsHint}" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <Button Content="Ouvrir steamdeckrepo.com" Command="{Binding OpenSiteCommand}" />
+                        <Button Content="{x:Static l:Strings.OpenSite}" Command="{Binding OpenSiteCommand}" />
+                        <Button Content="{x:Static l:Strings.OpenLogs}" Command="{Binding OpenLogsCommand}" />
                         <TextBlock Classes="muted small" VerticalAlignment="Center">
-                            <Run Text="Version" />
+                            <Run Text="{x:Static l:Strings.Version}" />
                             <Run Text="{Binding Version}" />
                         </TextBlock>
                     </StackPanel>

@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using BootVideoManager.App.Services;
+using BootVideoManager.Core.Localization;
 using BootVideoManager.Core.Platform;
 using BootVideoManager.Core.Steam;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,7 +15,7 @@ public sealed record SteamChoice(SteamInstallation Installation, string KindLabe
     public string RootPath => Installation.RootPath;
 }
 
-/// <summary>Settings tab: Steam folder selection, how-to and credits.</summary>
+/// <summary>Settings tab: Steam folder, updates, language, how-to, logs and credits.</summary>
 public sealed partial class SettingsViewModel : ViewModelBase
 {
     public static readonly Uri SiteUri = new("https://steamdeckrepo.com/");
@@ -23,14 +25,32 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly InstallCoordinator _installs;
     private readonly IPlatformServices _platform;
     private readonly INotifier _notifier;
+    private readonly bool _languageLoaded;
 
-    public SettingsViewModel(SteamLocator locator, SettingsStore settingsStore, InstallCoordinator installs, IPlatformServices platform, INotifier notifier)
+    public SettingsViewModel(
+        SteamLocator locator,
+        SettingsStore settingsStore,
+        InstallCoordinator installs,
+        IPlatformServices platform,
+        INotifier notifier,
+        UpdateViewModel updates)
     {
         _locator = locator;
         _settingsStore = settingsStore;
         _installs = installs;
         _platform = platform;
         _notifier = notifier;
+        Updates = updates;
+
+        LanguageOptions =
+        [
+            new(Loc.T("Automatique (langue du système)", "Automatic (system language)"), null),
+            new("Français", Loc.French),
+            new("English", Loc.English),
+        ];
+        var savedLanguage = settingsStore.Load().Language;
+        SelectedLanguage = LanguageOptions.FirstOrDefault(o => o.Value == savedLanguage) ?? LanguageOptions[0];
+        _languageLoaded = true;
 
         _installs.PropertyChanged += (_, e) =>
         {
@@ -45,13 +65,29 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     public ObservableCollection<SteamChoice> Detected { get; } = [];
 
-    public string CurrentRoot => _installs.Steam?.RootPath ?? "Aucun dossier Steam n'est sélectionné";
+    public UpdateViewModel Updates { get; }
+
+    public IReadOnlyList<Choice<string?>> LanguageOptions { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsRestartRequired))]
+    public partial Choice<string?> SelectedLanguage { get; set; }
+
+    /// <summary>The chosen language differs from the one on screen: texts change after a restart.</summary>
+    public bool IsRestartRequired =>
+        SelectedLanguage is not null && Loc.Resolve(SelectedLanguage.Value, CultureInfo.CurrentUICulture) != Loc.Current;
+
+    public string RestartHint { get; } = Loc.T(
+        "La nouvelle langue s'appliquera au prochain démarrage.",
+        "The new language will apply at the next start.");
+
+    public string CurrentRoot => _installs.Steam?.RootPath ?? Loc.T("Aucun dossier Steam n'est sélectionné", "No Steam folder is selected");
 
     public string CurrentMoviesDirectory => _installs.Steam?.MoviesDirectory ?? "—";
 
     public bool IsManual => _installs.Steam?.Kind == SteamInstallKind.Manual;
 
-    public string Version { get; } = typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "?";
+    public string Version { get; } = AppRuntime.VersionText;
 
     [ObservableProperty]
     public partial string? ValidationMessage { get; set; }
@@ -73,7 +109,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
                 return true;
             }
 
-            _notifier.ShowError($"Option --steam-root ignorée : « {commandLineRoot} » n'est pas un dossier Steam.");
+            _notifier.ShowError(Loc.T(
+                $"Option --steam-root ignorée : « {commandLineRoot} » n'est pas un dossier Steam.",
+                $"--steam-root option ignored: “{commandLineRoot}” is not a Steam folder."));
         }
 
         var saved = _settingsStore.Load().SteamRootOverride;
@@ -86,12 +124,40 @@ public sealed partial class SettingsViewModel : ViewModelBase
                 return true;
             }
 
-            _notifier.ShowError($"Le dossier Steam enregistré n'est plus valide ({saved}) : la détection automatique a pris le relais.");
+            _notifier.ShowError(Loc.T(
+                $"Le dossier Steam enregistré n'est plus valide ({saved}) : la détection automatique a pris le relais.",
+                $"The saved Steam folder is no longer valid ({saved}): automatic detection took over."));
         }
 
         _installs.Steam = Detected.FirstOrDefault()?.Installation;
+        AppLog.Info(_installs.Steam is { } steam ? $"Steam folder: {steam.RootPath} ({steam.Kind})." : "No Steam installation found.");
         return _installs.Steam is not null;
     }
+
+    partial void OnSelectedLanguageChanged(Choice<string?> value)
+    {
+        if (!_languageLoaded)
+        {
+            return;
+        }
+
+        try
+        {
+            _settingsStore.Update(s => s with { Language = value.Value });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppLog.Warn("Could not save the language.", ex);
+            _notifier.ShowError(Loc.T($"Impossible d'enregistrer la langue : {ex.Message}", $"Could not save the language: {ex.Message}"));
+        }
+    }
+
+    [RelayCommand]
+    private void Restart() => _platform.CloseApplication(restart: true);
+
+    [RelayCommand]
+    private Task OpenLogsAsync() =>
+        AppLog.Directory is { } directory ? _platform.OpenFolderAsync(directory) : Task.CompletedTask;
 
     [RelayCommand]
     private void DetectInstallations()
@@ -114,14 +180,16 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task BrowseAsync()
     {
-        if (await _platform.PickFolderAsync("Choisir le dossier d'installation de Steam") is not { } path)
+        if (await _platform.PickFolderAsync(Loc.T("Choisir le dossier d'installation de Steam", "Choose Steam's installation folder")) is not { } path)
         {
             return;
         }
 
         if (_locator.TryCreateManual(path) is not { } installation)
         {
-            ValidationMessage = "Ce dossier ne semble pas contenir d'installation Steam (ni dossier « config » ni dossier « steamapps »).";
+            ValidationMessage = Loc.T(
+                "Ce dossier ne semble pas contenir d'installation Steam (ni dossier « config » ni dossier « steamapps »).",
+                "This folder does not look like a Steam installation (no “config” nor “steamapps” folder).");
             return;
         }
 
@@ -134,27 +202,42 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private async Task ApplyAsync(SteamInstallation installation, string? overridePath)
     {
         ValidationMessage = null;
+        string? saveError = null;
         try
         {
-            _settingsStore.Save(new AppSettings { SteamRootOverride = overridePath });
+            // Only the Steam folder changes: the other preferences are kept.
+            _settingsStore.Update(s => s with { SteamRootOverride = overridePath });
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _notifier.ShowError($"Impossible d'enregistrer ce choix pour les prochains lancements : {ex.Message}");
+            AppLog.Warn("Could not save the Steam folder.", ex);
+            saveError = ex.Message;
         }
 
         _installs.Steam = installation;
+        AppLog.Info($"Steam folder changed: {installation.RootPath}.");
         await _installs.RefreshAsync();
-        _notifier.ShowInfo($"Dossier Steam utilisé : {installation.RootPath}");
+
+        // Shown last so the confirmation never hides the save failure.
+        if (saveError is null)
+        {
+            _notifier.ShowInfo(Loc.T($"Dossier Steam utilisé : {installation.RootPath}", $"Steam folder in use: {installation.RootPath}"));
+        }
+        else
+        {
+            _notifier.ShowError(Loc.T(
+                $"Dossier Steam utilisé : {installation.RootPath}, mais ce choix n'a pas pu être enregistré pour les prochains lancements : {saveError}",
+                $"Steam folder in use: {installation.RootPath}, but this choice could not be saved for the next launches: {saveError}"));
+        }
     }
 
     private static string KindLabel(SteamInstallKind kind) => kind switch
     {
-        SteamInstallKind.Registry => "Détectée dans le registre Windows",
-        SteamInstallKind.DefaultLocation => "Emplacement par défaut",
-        SteamInstallKind.Native => "Installation Linux / Steam Deck",
+        SteamInstallKind.Registry => Loc.T("Détectée dans le registre Windows", "Found in the Windows registry"),
+        SteamInstallKind.DefaultLocation => Loc.T("Emplacement par défaut", "Default location"),
+        SteamInstallKind.Native => Loc.T("Installation Linux / Steam Deck", "Linux / Steam Deck installation"),
         SteamInstallKind.Flatpak => "Flatpak",
         SteamInstallKind.Snap => "Snap",
-        _ => "Choisie manuellement",
+        _ => Loc.T("Choisie manuellement", "Chosen manually"),
     };
 }

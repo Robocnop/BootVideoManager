@@ -3,6 +3,7 @@ using Avalonia.Media.Imaging;
 using BootVideoManager.App.Services;
 using BootVideoManager.Core.Caching;
 using BootVideoManager.Core.Install;
+using BootVideoManager.Core.Localization;
 using BootVideoManager.Core.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +20,7 @@ public sealed partial class PostCardViewModel : ViewModelBase
     private readonly Action<PostCardViewModel> _openDetail;
     private CancellationTokenSource? _installCancellation;
     private bool _thumbnailRequested;
+    private int _thumbnailGeneration;
 
     public PostCardViewModel(Post post, InstallCoordinator installs, ThumbnailCache thumbnails, Action<PostCardViewModel> openDetail)
     {
@@ -34,10 +36,12 @@ public sealed partial class PostCardViewModel : ViewModelBase
     public string Title => Post.Title;
 
     /// <summary>Screen-reader / UI automation name of the thumbnail button.</summary>
-    public string PreviewAutomationName => $"Aperçu : {Post.Title}";
+    public string PreviewAutomationName => $"{Loc.T("Aperçu", "Preview")} : {Post.Title}";
 
     /// <summary>Authors are always credited.</summary>
-    public string AuthorText => string.IsNullOrWhiteSpace(Post.Author.Name) ? "auteur inconnu" : $"par {Post.Author.Name}";
+    public string AuthorText => string.IsNullOrWhiteSpace(Post.Author.Name)
+        ? Loc.T("auteur inconnu", "unknown author")
+        : $"{Loc.T("par", "by")} {Post.Author.Name}";
 
     public string DurationText => Post.Duration is { } duration
         ? duration.TotalSeconds < 60
@@ -47,11 +51,11 @@ public sealed partial class PostCardViewModel : ViewModelBase
 
     public string StatsText => string.Create(
         CultureInfo.CurrentCulture,
-        $"{Post.Likes:N0} j'aime · {Post.Downloads:N0} {(Post.Downloads > 1 ? "téléchargements" : "téléchargement")}");
+        $"{Post.Likes:N0} {Loc.T("j'aime", Post.Likes == 1 ? "like" : "likes")} · {Post.Downloads:N0} {(Post.Downloads > 1 ? Loc.T("téléchargements", "downloads") : Loc.T("téléchargement", "download"))}");
 
     public string TagsText => string.Join(
         " · ",
-        new[] { Post.Type == VideoType.SuspendVideo ? "Veille" : "Démarrage" }
+        new[] { Post.Type == VideoType.SuspendVideo ? Loc.T("Veille", "Suspend") : Loc.T("Démarrage", "Startup") }
             .Concat(Post.Devices.Select(DeviceLabel).OfType<string>()));
 
     [ObservableProperty]
@@ -64,6 +68,10 @@ public sealed partial class PostCardViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanInstall))]
     public partial bool IsInstalling { get; set; }
+
+    /// <summary>Waiting for a free download slot (see <see cref="InstallCoordinator.MaxConcurrentDownloads"/>).</summary>
+    [ObservableProperty]
+    public partial bool IsQueued { get; set; }
 
     [ObservableProperty]
     public partial double Progress { get; set; }
@@ -90,14 +98,15 @@ public sealed partial class PostCardViewModel : ViewModelBase
         }
 
         _thumbnailRequested = true;
+        var generation = _thumbnailGeneration;
         var bitmap = await BitmapLoader.LoadAsync(_thumbnails, Post.ThumbnailUri, ThumbnailDecodeWidth);
-        if (_thumbnailRequested)
+        if (generation == _thumbnailGeneration && Thumbnail is null)
         {
             Thumbnail = bitmap;
         }
         else
         {
-            bitmap?.Dispose(); // Card was recycled while loading.
+            bitmap?.Dispose(); // Card was recycled (and maybe shown again) while loading.
         }
     }
 
@@ -105,6 +114,7 @@ public sealed partial class PostCardViewModel : ViewModelBase
     public void ReleaseThumbnail()
     {
         _thumbnailRequested = false;
+        _thumbnailGeneration++;
         var bitmap = Thumbnail;
         Thumbnail = null;
         bitmap?.Dispose();
@@ -124,6 +134,7 @@ public sealed partial class PostCardViewModel : ViewModelBase
         }
 
         IsInstalling = true;
+        IsQueued = true;
         IsProgressIndeterminate = true;
         Progress = 0;
         using var cancellation = new CancellationTokenSource();
@@ -141,11 +152,12 @@ public sealed partial class PostCardViewModel : ViewModelBase
 
         try
         {
-            await _installs.InstallAsync(Post, progress, cancellation.Token);
+            await _installs.InstallAsync(Post, progress, cancellation.Token, started: () => IsQueued = false);
         }
         finally
         {
             _installCancellation = null;
+            IsQueued = false;
             IsInstalling = false;
             SyncInstalledState();
         }

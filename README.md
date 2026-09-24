@@ -42,14 +42,38 @@ Application desktop multiplateforme (Windows, Linux / Steam Deck) en C# / .NET 1
 - **Détection automatique de Steam** : registre Windows, `~/.steam`, `~/.local/share/Steam`, Flatpak, Snap ; choix
   manuel possible et mémorisé.
 - **Hors ligne** : le dernier catalogue connu reste consultable, avec un message clair.
+- **Mises à jour automatiques** : au démarrage, l'application consulte les
+  [Releases GitHub](https://github.com/Robocnop/SteamBigStartup_launcher/releases) et propose la nouvelle version ;
+  l'installateur est téléchargé, vérifié (taille et SHA-256 publiés avec la release), puis lancé, et l'application
+  redémarre à jour. Version ignorable, vérification désactivable dans *Réglages*.
+- **Français / English** : langue du système par défaut, ou au choix dans *Réglages*.
+- **Téléchargements robustes** : reprise après coupure (requêtes `Range`), file d'attente de deux téléchargements
+  simultanés.
+- **Préférences mémorisées** : tri, filtres, volume et son coupé de l'aperçu.
+- **Une seule instance** : relancer l'application ramène la fenêtre ouverte au premier plan.
+- **Journal de diagnostic** (un fichier par jour, 14 jours conservés), ouvrable depuis *Réglages › À propos*.
 
 ## Installation
 
 ### Windows
 
-1. Téléchargez `BootVideoManager-<version>-win-x64.exe` (ou générez-le, voir [Build](#build)).
-2. Placez-le où vous voulez et lancez-le : c'est un exécutable unique qui contient tout (runtime .NET, DLL et
-   composants VLC). Au premier lancement, ses bibliothèques natives sont extraites dans `%TEMP%\.net`.
+**Installateur (recommandé)** : téléchargez `BootVideoManager-<version>-win-x64-setup.exe` (ou `win-arm64` pour
+les PC ARM) depuis les
+[Releases](https://github.com/Robocnop/SteamBigStartup_launcher/releases) et lancez-le. Il installe tous les
+composants (runtime .NET, Avalonia, VLC) dans le dossier choisi, crée un raccourci dans le menu Démarrer (et sur le
+Bureau si vous le cochez) et ajoute l'application à *Paramètres › Applications* pour la désinstaller. Aucun droit
+administrateur n'est demandé par défaut (installation pour l'utilisateur courant ; l'installation pour tous les
+utilisateurs reste proposée). Les mises à jour s'installent par-dessus ; la désinstallation propose de supprimer
+aussi les réglages et le cache, sans jamais toucher aux vidéos placées dans Steam.
+
+Une fois installée, l'application se met à jour d'elle-même (voir *Réglages › Mises à jour*).
+
+**Portable** : `BootVideoManager-<version>-win-x64-portable.exe` est un exécutable unique qui contient tout ; au
+premier lancement, ses bibliothèques natives sont extraites dans `%TEMP%\.net`. La version portable signale les
+nouvelles versions mais ne peut pas se remplacer elle-même : le bouton ouvre la page de téléchargement.
+
+L'exécutable n'est pas signé : Windows SmartScreen peut afficher un avertissement (« Informations complémentaires »
+puis « Exécuter quand même »).
 
 ### Linux / Steam Deck (mode Bureau)
 
@@ -84,9 +108,20 @@ dotnet run --project src/BootVideoManager.App -- --steam-root /chemin/vers/FauxS
 Archives autonomes (tests puis publication) :
 
 ```powershell
-./build/publish.ps1                     # win-x64 + linux-x64 → artifacts/publish/
+./build/publish.ps1                     # win-x64 (installateur + portable) + linux-x64 → artifacts/publish/
+./build/publish.ps1 -Runtime win-x64,win-arm64
 ./build/publish.ps1 -Runtime win-x64
+./build/publish.ps1 -SkipInstaller      # sans Inno Setup
 ```
+
+L'installateur Windows (`packaging/windows/BootVideoManager.iss`) nécessite [Inno Setup 6](https://jrsoftware.org/isinfo.php)
+(`winget install JRSoftware.InnoSetup`).
+
+**Releases automatiques** : pousser un tag `vX.Y.Z` (identique à `<Version>` de `Directory.Build.props`) lance
+`.github/workflows/release.yml`, qui teste, construit l'installateur, l'exe portable et l'archive Linux, puis les
+joint à la release GitHub avec leurs empreintes SHA-256 (`SHA256SUMS.txt`, indispensable aux mises à jour
+automatiques). Les notes de version sont lues dans `docs/release-notes/<tag>.md` ; un tag avec suffixe
+(`v1.1.0-beta`) crée une pré-version, que l'application ne propose pas.
 
 ```bash
 ./build/publish.sh linux-x64            # sous Linux (conserve le bit exécutable)
@@ -98,13 +133,17 @@ Archives autonomes (tests puis publication) :
 ```
 src/BootVideoManager.Core    Services sans UI, entièrement testés
   Api/       client steamdeckrepo.com, parseur tolérant, nouvelles tentatives polies
+  Updates/   vérification des Releases GitHub, téléchargement vérifié de l'installateur
+  Localization/  choix français / anglais
   Catalog/   cache disque, rafraîchissement conditionnel, recherche / filtres / tris
-  Install/   téléchargement vérifié, manifeste, réconciliation, désinstallation sûre
+  Install/   téléchargement vérifié et repris après coupure, manifeste, réconciliation, désinstallation sûre
   Steam/     détection des installations Steam
   Caching/   cache des miniatures
-  Platform/  chemins de l'application, réglages
+  Platform/  chemins de l'application, réglages, journal
 src/BootVideoManager.App     Avalonia 12 + CommunityToolkit.Mvvm (Views / ViewModels / Services / Controls)
-tests/BootVideoManager.Core.Tests   xUnit v3 (140 tests)
+tests/BootVideoManager.Core.Tests   xUnit v3 (179 tests)
+tests/BootVideoManager.App.Tests    tests d'interface Avalonia headless (11 tests)
+packaging/windows                   installateur Inno Setup (mode mise à jour /UPDATE=1)
 ```
 
 Détails et justifications : [docs/architecture.md](docs/architecture.md). Analyse de l'API et des chemins Steam :
@@ -115,7 +154,8 @@ Détails et justifications : [docs/architecture.md](docs/architecture.md). Analy
 | | Windows | Linux |
 |---|---|---|
 | Manifeste et réglages | `%APPDATA%\BootVideoManager\` | `~/.config/BootVideoManager/` |
-| Cache (catalogue, miniatures) | `%LOCALAPPDATA%\BootVideoManager\cache\` | `~/.cache/BootVideoManager/` |
+| Cache (catalogue, miniatures, mises à jour) | `%LOCALAPPDATA%\BootVideoManager\cache\` | `~/.cache/BootVideoManager/` |
+| Journaux | `%LOCALAPPDATA%\BootVideoManager\logs\` | `~/.local/state/BootVideoManager/logs/` |
 
 Le cache peut être supprimé sans risque. Le manifeste mémorise ce que l'application a installé ; s'il est
 supprimé, les vidéos restent en place et demandent simplement une confirmation avant suppression.
@@ -140,6 +180,10 @@ supprimé, les vidéos restent en place et demandent simplement une confirmation
   dédiée au mode Jeu du Deck.
 - Les vidéos de veille s'installent comme les vidéos de démarrage ; leur sélection comme vidéo de sortie de
   veille dans Steam n'a pas été vérifiée sur un Deck.
+
+## Licence
+
+[MIT](LICENSE). Les vidéos du catalogue restent la propriété de leurs auteurs.
 
 ## Crédits
 

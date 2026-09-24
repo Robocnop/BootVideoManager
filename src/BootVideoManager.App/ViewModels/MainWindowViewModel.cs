@@ -1,10 +1,11 @@
 using BootVideoManager.App.Services;
+using BootVideoManager.Core.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace BootVideoManager.App.ViewModels;
 
-/// <summary>Shell: tabs, Steam status, notifications and confirmation dialogs.</summary>
+/// <summary>Shell: tabs, Steam status, update banner, notifications and confirmation dialogs.</summary>
 public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService, INotifier, IDisposable
 {
     public const int SettingsTabIndex = 2;
@@ -13,15 +14,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
     private readonly AppServices _services;
     private readonly InstallCoordinator _installs;
 
-    public MainWindowViewModel(AppServices services, IPlatformServices platform)
+    /// <param name="canSelfUpdate">Whether updates can be installed in place (defaults to how this copy was installed).</param>
+    public MainWindowViewModel(AppServices services, IPlatformServices platform, bool? canSelfUpdate = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _installs = new InstallCoordinator(services.Install, this, this);
 
-        Catalog = new CatalogViewModel(services.Catalog, services.Thumbnails, _installs, platform);
+        Updates = new UpdateViewModel(services.Updates, services.UpdateOptions, services.Settings, this, platform, canSelfUpdate ?? AppRuntime.CanSelfUpdate);
+        Catalog = new CatalogViewModel(services.Catalog, services.Thumbnails, _installs, platform, services.Settings, new PreviewSoundViewModel(services.Settings));
         Installed = new InstalledViewModel(_installs, services.Thumbnails, platform);
-        Settings = new SettingsViewModel(services.SteamLocator, services.Settings, _installs, platform, this);
+        Settings = new SettingsViewModel(services.SteamLocator, services.Settings, _installs, platform, this, Updates);
 
         _installs.InstalledChanged += (_, _) => OnPropertyChanged(nameof(InstalledCount));
         _installs.PropertyChanged += (_, e) =>
@@ -38,6 +41,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
     public InstalledViewModel Installed { get; }
 
     public SettingsViewModel Settings { get; }
+
+    public UpdateViewModel Updates { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCatalogTab), nameof(IsInstalledTab), nameof(IsSettingsTab))]
@@ -57,7 +62,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
 
     public string SteamText => _installs.Steam is { } steam
         ? $"Steam : {steam.RootPath}"
-        : "Steam introuvable : indiquez son dossier dans l'onglet Réglages";
+        : Loc.T("Steam introuvable : indiquez son dossier dans l'onglet Réglages", "Steam not found: choose its folder in the Settings tab");
 
     public int InstalledCount => _installs.Installed.Count;
 
@@ -70,7 +75,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
             SelectedTabIndex = SettingsTabIndex;
         }
 
-        await Task.WhenAll(_installs.RefreshAsync(), Catalog.LoadAsync(forceRefresh: false));
+        await Task.WhenAll(_installs.RefreshAsync(), Catalog.LoadAsync(forceRefresh: false), Updates.CheckAtStartupAsync());
         _ = Task.Run(_services.Thumbnails.Trim);
     }
 
@@ -93,7 +98,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
         _ = DismissLaterAsync(notification);
     }
 
-    public void ShowError(string message) => Show(message, isError: true);
+    public void ShowError(string message)
+    {
+        AppLog.Warn($"Error shown to the user: {message}");
+        Show(message, isError: true);
+    }
 
     /// <summary>Escape closes the dialog first, then the detail panel.</summary>
     [RelayCommand]
@@ -109,7 +118,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
         }
     }
 
-    public void Dispose() => Catalog.Dispose();
+    public void Dispose()
+    {
+        Catalog.Dispose();
+        _installs.Dispose();
+    }
 
     private NotificationViewModel Show(string message, bool isError) =>
         Notification = new NotificationViewModel(message, isError, n =>

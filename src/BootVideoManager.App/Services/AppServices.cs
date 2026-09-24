@@ -5,6 +5,7 @@ using BootVideoManager.Core.Catalog;
 using BootVideoManager.Core.Install;
 using BootVideoManager.Core.Platform;
 using BootVideoManager.Core.Steam;
+using BootVideoManager.Core.Updates;
 
 namespace BootVideoManager.App.Services;
 
@@ -15,21 +16,31 @@ public sealed class AppServices : IDisposable
 
     private AppServices(
         HttpClient http,
+        AppPaths paths,
         RepoApiOptions apiOptions,
         CatalogService catalog,
         InstallService install,
         ThumbnailCache thumbnails,
         SettingsStore settings,
-        SteamLocator steamLocator)
+        SteamLocator steamLocator,
+        UpdateService updates,
+        UpdateOptions updateOptions,
+        FileLog log)
     {
         _http = http;
+        Paths = paths;
         ApiOptions = apiOptions;
         Catalog = catalog;
         Install = install;
         Thumbnails = thumbnails;
         Settings = settings;
         SteamLocator = steamLocator;
+        Updates = updates;
+        UpdateOptions = updateOptions;
+        Log = log;
     }
+
+    public AppPaths Paths { get; }
 
     public RepoApiOptions ApiOptions { get; }
 
@@ -43,12 +54,20 @@ public sealed class AppServices : IDisposable
 
     public SteamLocator SteamLocator { get; }
 
-    public static AppServices Create()
+    public UpdateService Updates { get; }
+
+    public UpdateOptions UpdateOptions { get; }
+
+    public FileLog Log { get; }
+
+    /// <param name="paths">Folders for settings, caches and logs; the current user's by default.</param>
+    public static AppServices Create(AppPaths? paths = null)
     {
         var fileSystem = new FileSystem();
         var time = TimeProvider.System;
-        var paths = AppPaths.ForCurrentUser();
+        paths ??= AppPaths.ForCurrentUser();
         var apiOptions = new RepoApiOptions();
+        var updateOptions = new UpdateOptions { UserAgent = apiOptions.UserAgent };
 
         // One HttpClient for the whole app: shared connection pool, polite retries, identifiable User-Agent.
         var http = RepoApiClient.CreateHttpClient(apiOptions);
@@ -56,6 +75,7 @@ public sealed class AppServices : IDisposable
 
         return new AppServices(
             http,
+            paths,
             apiOptions,
             new CatalogService(api, new CatalogCache(fileSystem, paths.CatalogCacheDirectory), time),
             new InstallService(fileSystem, new ManifestStore(fileSystem, paths.ManifestPath, time), http, api, apiOptions, time),
@@ -64,7 +84,10 @@ public sealed class AppServices : IDisposable
             new SteamLocator(
                 fileSystem,
                 SteamLocatorEnvironment.Current(),
-                OperatingSystem.IsWindows() ? new WindowsSteamRegistry() : null));
+                OperatingSystem.IsWindows() ? new WindowsSteamRegistry() : null),
+            new UpdateService(http, updateOptions, fileSystem, paths.UpdateDownloadDirectory, AppRuntime.Version, AppRuntime.RuntimeIdentifier),
+            updateOptions,
+            new FileLog(fileSystem, paths.LogDirectory, time));
     }
 
     public void Dispose()

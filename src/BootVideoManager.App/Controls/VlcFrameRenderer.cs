@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using BootVideoManager.App.Services;
+using BootVideoManager.Core.Localization;
 using LibVLCSharp.Shared;
 
 namespace BootVideoManager.App.Controls;
@@ -28,9 +30,11 @@ public static class VlcRuntime
                 catch (Exception ex) when (ex is VLCException or DllNotFoundException or TypeInitializationException or BadImageFormatException or EntryPointNotFoundException)
                 {
                     _error = OperatingSystem.IsWindows()
-                        ? "Aperçu indisponible : impossible de charger les composants de VLC."
-                        : "Aperçu indisponible : libvlc est introuvable. Installez VLC avec le gestionnaire de paquets de votre système ou utilisez la version Flatpak de l'application.";
-                    Console.Error.WriteLine(ex);
+                        ? Loc.T("Aperçu indisponible : impossible de charger les composants de VLC.", "Preview unavailable: VLC components could not be loaded.")
+                        : Loc.T(
+                            "Aperçu indisponible : libvlc est introuvable. Installez VLC avec le gestionnaire de paquets de votre système ou utilisez la version Flatpak de l'application.",
+                            "Preview unavailable: libvlc was not found. Install VLC with your system's package manager or use the Flatpak version of the app.");
+                    AppLog.Error("libvlc could not be loaded.", ex);
                 }
             }
 
@@ -81,7 +85,7 @@ public sealed class VlcFrameRenderer : IDisposable
     {
         _libVlc = libVlc;
         _userAgent = userAgent;
-        _player = new MediaPlayer(libVlc) { Volume = 70 };
+        _player = new MediaPlayer(libVlc);
 
         _formatCallback = OnFormat;
         _cleanupCallback = OnCleanup;
@@ -109,16 +113,16 @@ public sealed class VlcFrameRenderer : IDisposable
     /// <returns><c>true</c> when paused.</returns>
     public bool TogglePause()
     {
-        _player.SetPause(_player.IsPlaying);
-        return !_player.IsPlaying;
+        // SetPause is asynchronous: IsPlaying still reports the old state right after the call.
+        var pause = _player.IsPlaying;
+        _player.SetPause(pause);
+        return pause;
     }
 
-    /// <returns><c>true</c> when muted.</returns>
-    public bool ToggleMute()
-    {
-        _player.Mute = !_player.Mute;
-        return _player.Mute;
-    }
+    /// <param name="volume">0 to 100.</param>
+    public void SetVolume(int volume) => _player.Volume = Math.Clamp(volume, 0, 100);
+
+    public void SetMute(bool muted) => _player.Mute = muted;
 
     /// <summary>Copies the latest decoded frame into <paramref name="bitmap"/>, replacing it if the size changed.</summary>
     /// <returns><c>false</c> if no new frame was available.</returns>

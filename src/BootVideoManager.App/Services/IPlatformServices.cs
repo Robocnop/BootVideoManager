@@ -13,6 +13,9 @@ public interface IPlatformServices
 
     /// <summary>Opens a folder in the file manager, creating it first if needed.</summary>
     Task OpenFolderAsync(string path);
+
+    /// <summary>Closes the application, optionally starting it again (language change).</summary>
+    void CloseApplication(bool restart);
 }
 
 /// <summary>Modal confirmation shown inside the main window (works with mouse, keyboard and controller).</summary>

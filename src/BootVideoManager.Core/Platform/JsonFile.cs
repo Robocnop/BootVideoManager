@@ -17,8 +17,25 @@ internal static class JsonFile
             fileSystem.Directory.CreateDirectory(directory);
         }
 
-        var temporaryPath = path + ".tmp";
-        fileSystem.File.WriteAllBytes(temporaryPath, bytes);
-        fileSystem.File.Move(temporaryPath, path, overwrite: true);
+        // Unique name: two app instances (or a crash leftover) never collide on the same temporary file.
+        var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            fileSystem.File.WriteAllBytes(temporaryPath, bytes);
+            fileSystem.File.Move(temporaryPath, path, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                fileSystem.File.Delete(temporaryPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Harmless leftover; the original error matters more.
+            }
+
+            throw;
+        }
     }
 }

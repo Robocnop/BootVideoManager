@@ -1,0 +1,109 @@
+# Pushing a tag vX.Y.Z builds the Windows installers and portable .exe (x64 and ARM64) and the Linux archive, then
+# attaches them with their SHA-256 to the GitHub release of that tag. Tags with a suffix (v1.1.0-beta) become
+# pre-releases, which the in-app updater ignores; notes come from docs/release-notes/<tag>.md when present.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to (re)build, e.g. v0.5.0
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Check that the tag matches the project version
+        shell: pwsh
+        run: |
+          $version = (dotnet msbuild src/BootVideoManager.App/BootVideoManager.App.csproj -getProperty:Version).Trim()
+          if ("v$version" -ne $env:TAG) { throw "Tag $env:TAG does not match <Version>$version</Version> in Directory.Build.props." }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Test, publish and build the installer
+        shell: pwsh
+        run: ./build/publish.ps1 -Runtime win-x64,win-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            artifacts/publish/*-setup.exe
+            artifacts/publish/*-portable.exe
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Test and publish
+        run: bash build/publish.sh linux-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: artifacts/publish/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            args=(--title "Boot Video Manager ${TAG#v}")
+            if [[ "$TAG" == *-* ]]; then args+=(--prerelease); fi
+            if [[ -f "docs/release-notes/$TAG.md" ]]; then args+=(--notes-file "docs/release-notes/$TAG.md"); else args+=(--generate-notes); fi
+            gh release create "$TAG" dist/* "${args[@]}"
+          fi

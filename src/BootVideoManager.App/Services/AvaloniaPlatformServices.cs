@@ -1,12 +1,15 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
+using BootVideoManager.Core.Localization;
 
 namespace BootVideoManager.App.Services;
 
 /// <summary><see cref="IPlatformServices"/> implemented with Avalonia's storage provider and launcher.</summary>
 public sealed class AvaloniaPlatformServices(TopLevel topLevel) : IPlatformServices
 {
-    private static readonly FilePickerFileType WebmFiles = new("Vidéo WebM")
+    private static FilePickerFileType WebmFiles => new(Loc.T("Vidéo WebM", "WebM video"))
     {
         Patterns = ["*.webm"],
         MimeTypes = ["video/webm"],
@@ -27,7 +30,7 @@ public sealed class AvaloniaPlatformServices(TopLevel topLevel) : IPlatformServi
     {
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Importer une vidéo .webm",
+            Title = Loc.T("Importer une vidéo .webm", "Import a .webm video"),
             AllowMultiple = false,
             FileTypeFilter = [WebmFiles],
         });
@@ -41,5 +44,11 @@ public sealed class AvaloniaPlatformServices(TopLevel topLevel) : IPlatformServi
     {
         Directory.CreateDirectory(path);
         await topLevel.Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(path));
+    }
+
+    public void CloseApplication(bool restart)
+    {
+        App.RestartRequested = restart;
+        (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
     }
 }

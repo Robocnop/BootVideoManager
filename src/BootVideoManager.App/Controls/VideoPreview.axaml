@@ -1,19 +1,22 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:l="using:BootVideoManager.App.Localization"
              x:Class="BootVideoManager.App.Controls.VideoPreview">
     <Grid RowDefinitions="*,Auto">
         <Border CornerRadius="6" ClipToBounds="True" Background="Black">
             <Panel>
                 <Image x:Name="FrameImage" Stretch="Uniform" />
-                <TextBlock x:Name="StatusText" Classes="muted" Text="Chargement de l'aperçu…"
+                <TextBlock x:Name="StatusText" Classes="muted" Text="{x:Static l:Strings.PreviewLoading}"
                            TextWrapping="Wrap" TextAlignment="Center" Margin="16"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Panel>
         </Border>
         <StackPanel x:Name="Controls" Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0"
                     HorizontalAlignment="Right" IsVisible="False">
-            <Button x:Name="PauseButton" Content="Pause" Click="OnPauseClicked" />
-            <Button x:Name="MuteButton" Content="Couper le son" Click="OnMuteClicked" />
+            <Button x:Name="PauseButton" Content="{x:Static l:Strings.Pause}" Click="OnPauseClicked" />
+            <Button x:Name="MuteButton" Content="{x:Static l:Strings.Mute}" Click="OnMuteClicked" />
+            <Slider x:Name="VolumeSlider" Width="110" Minimum="0" Maximum="100" VerticalAlignment="Center"
+                    ToolTip.Tip="{x:Static l:Strings.Volume}" AutomationProperties.Name="{x:Static l:Strings.Volume}" />
         </StackPanel>
     </Grid>
 </UserControl>
