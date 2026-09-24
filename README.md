@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo/logo.png" alt="Boot Video Manager logo" width="128" />
+<img src="src/BootVideoManager.App/Assets/app-icon.png" alt="Boot Video Manager logo" width="128" />
 
 # Boot Video Manager
 
