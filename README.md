@@ -231,8 +231,8 @@ Design notes: [docs/architecture.md](docs/architecture.md) · API and Steam path
 
 ## Contributing
 
-Bug reports and pull requests are welcome. Please run `dotnet test --solution BootVideoManager.slnx` before opening a
-pull request, and attach the day's log file to bug reports.
+Bug reports, ideas, translations and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+setup, the project rules and how to report a bug with the app's log.
 
 ## License
 
