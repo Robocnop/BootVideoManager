@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform.Storage;
 using BootVideoManager.Core.Localization;
+using BootVideoManager.Core.Sharing;
 
 namespace BootVideoManager.App.Services;
 
@@ -13,6 +14,12 @@ public sealed class AvaloniaPlatformServices(TopLevel topLevel) : IPlatformServi
     {
         Patterns = ["*.webm"],
         MimeTypes = ["video/webm"],
+    };
+
+    private static FilePickerFileType PackFiles => new(Loc.T("Pack Boot Video Manager", "Boot Video Manager pack"))
+    {
+        Patterns = ["*" + VideoPack.FileExtension],
+        MimeTypes = ["application/json"],
     };
 
     public async Task<string?> PickFolderAsync(string title)
@@ -36,6 +43,32 @@ public sealed class AvaloniaPlatformServices(TopLevel topLevel) : IPlatformServi
         });
 
         return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task<string?> PickPackFileAsync()
+    {
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Loc.T("Importer un pack", "Import a pack"),
+            AllowMultiple = false,
+            FileTypeFilter = [PackFiles],
+        });
+
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task<string?> PickPackSavePathAsync(string suggestedName)
+    {
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Loc.T("Exporter mes vidéos", "Export my videos"),
+            SuggestedFileName = suggestedName,
+            DefaultExtension = VideoPack.FileExtension.TrimStart('.'),
+            FileTypeChoices = [PackFiles],
+            ShowOverwritePrompt = true,
+        });
+
+        return file?.TryGetLocalPath();
     }
 
     public async Task OpenUriAsync(Uri uri) => await topLevel.Launcher.LaunchUriAsync(uri);

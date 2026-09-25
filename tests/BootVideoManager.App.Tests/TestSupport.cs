@@ -32,6 +32,13 @@ internal sealed class FakePlatform : IPlatformServices
 
     public Task<string?> PickWebmFileAsync() => Task.FromResult<string?>(null);
 
+    /// <summary>File returned by the next "import a pack" picker.</summary>
+    public string? PackToImport { get; set; }
+
+    public Task<string?> PickPackFileAsync() => Task.FromResult(PackToImport);
+
+    public Task<string?> PickPackSavePathAsync(string suggestedName) => Task.FromResult<string?>(null);
+
     public Task OpenUriAsync(Uri uri)
     {
         OpenedUris.Add(uri);

@@ -78,6 +78,16 @@ public static class Strings
     // Installed
     public static string ImportWebm => Loc.T("Importer un fichier .webm…", "Import a .webm file…");
 
+    public static string Share => Loc.T("Partager ▾", "Share ▾");
+
+    public static string ExportPack => Loc.T("Exporter mes vidéos dans un fichier…", "Export my videos to a file…");
+
+    public static string ImportPack => Loc.T("Importer un pack…", "Import a pack…");
+
+    public static string ShareTip => Loc.T(
+        "Partagez votre sélection avec un fichier .bvmpack : vos amis l'importent et l'application télécharge les mêmes vidéos depuis le catalogue.",
+        "Share your selection as a .bvmpack file: your friends import it and the app downloads the same videos from the catalog.");
+
     public static string OpenFolder => Loc.T("Ouvrir le dossier", "Open folder");
 
     public static string RemoveAll => Loc.T("Tout retirer", "Remove all");

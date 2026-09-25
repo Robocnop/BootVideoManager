@@ -177,4 +177,25 @@ public sealed class MainWindowTests : IDisposable
 
         Assert.Equal([_test.Services.Log.Directory], _platform.OpenedFolders);
     }
+
+    [AvaloniaFact]
+    public async Task ImportPack_WithAFileThatIsNotAPack_ShowsAnError()
+    {
+        var (_, viewModel) = Show();
+        var path = Path.Combine(Path.GetTempPath(), $"bvm-test-{Guid.NewGuid():N}.bvmpack");
+        await File.WriteAllTextAsync(path, "not a pack", TestContext.Current.CancellationToken);
+        try
+        {
+            _platform.PackToImport = path;
+
+            await viewModel.Installed.ImportPackCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.Notification?.IsError);
+            Assert.False(viewModel.Installed.IsBusy);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

@@ -1,11 +1,15 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO.Abstractions;
 using Avalonia.Media.Imaging;
 using BootVideoManager.App.Services;
+using BootVideoManager.Core.Api;
 using BootVideoManager.Core.Caching;
+using BootVideoManager.Core.Catalog;
 using BootVideoManager.Core.Install;
 using BootVideoManager.Core.Localization;
 using BootVideoManager.Core.Models;
+using BootVideoManager.Core.Sharing;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -14,15 +18,21 @@ namespace BootVideoManager.App.ViewModels;
 /// <summary>"Installed" tab: every video Steam can use — installed, disabled, or shipped with Steam.</summary>
 public sealed partial class InstalledViewModel : ViewModelBase
 {
+    private static readonly IFileSystem Files = new FileSystem();
+
     private readonly InstallCoordinator _installs;
+    private readonly CatalogService _catalog;
     private readonly ThumbnailCache _thumbnails;
     private readonly IPlatformServices _platform;
+    private readonly INotifier _notifier;
 
-    public InstalledViewModel(InstallCoordinator installs, ThumbnailCache thumbnails, IPlatformServices platform)
+    public InstalledViewModel(InstallCoordinator installs, CatalogService catalog, ThumbnailCache thumbnails, IPlatformServices platform, INotifier notifier)
     {
         _installs = installs;
+        _catalog = catalog;
         _thumbnails = thumbnails;
         _platform = platform;
+        _notifier = notifier;
 
         _installs.InstalledChanged += (_, _) => Rebuild();
         _installs.PropertyChanged += (_, e) =>
@@ -60,6 +70,13 @@ public sealed partial class InstalledViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
 
+    /// <summary>Progress of a pack import, shown under the toolbar; <c>null</c> otherwise.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBusyText))]
+    public partial string? BusyText { get; set; }
+
+    public bool HasBusyText => BusyText is not null;
+
     [RelayCommand]
     private Task RefreshAsync() => RunBusyAsync(_installs.RefreshAsync);
 
@@ -73,6 +90,68 @@ public sealed partial class InstalledViewModel : ViewModelBase
         {
             await RunBusyAsync(() => _installs.ImportAsync(path));
         }
+    }
+
+    [RelayCommand]
+    private async Task ExportPackAsync()
+    {
+        var name = string.Create(CultureInfo.InvariantCulture, $"{Loc.T("mes-videos", "my-videos")}-{DateTime.Now:yyyy-MM-dd}{VideoPack.FileExtension}");
+        if (await _platform.PickPackSavePathAsync(name) is { } path)
+        {
+            await RunBusyAsync(() => _installs.ExportPackAsync(path));
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportPackAsync()
+    {
+        if (await _platform.PickPackFileAsync() is not { } path)
+        {
+            return;
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            VideoPack pack;
+            CatalogSnapshot catalog;
+            try
+            {
+                pack = VideoPacks.Load(Files, path);
+                catalog = _catalog.Current ?? await _catalog.LoadAsync();
+            }
+            catch (VideoPackException ex)
+            {
+                AppLog.Warn($"Invalid pack {path}.", ex);
+                _notifier.ShowError(ex.Message);
+                return;
+            }
+            catch (RepoApiException ex)
+            {
+                AppLog.Warn("Catalog unavailable for a pack import.", ex);
+                _notifier.ShowError(Loc.T(
+                    "Le catalogue est indisponible : connectez-vous à Internet pour importer un pack.",
+                    "The catalog is unavailable: connect to the Internet to import a pack."));
+                return;
+            }
+
+            // Progress<T> posts its reports: a late one must not bring the text back once the import is over.
+            var importing = true;
+            try
+            {
+                await _installs.ImportPackAsync(pack, catalog.Posts, new Progress<string>(text =>
+                {
+                    if (importing)
+                    {
+                        BusyText = text;
+                    }
+                }));
+            }
+            finally
+            {
+                importing = false;
+                BusyText = null;
+            }
+        });
     }
 
     [RelayCommand]

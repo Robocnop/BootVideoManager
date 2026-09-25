@@ -77,6 +77,15 @@ current user by default.
   moved to a folder Steam ignores, so they also leave the shuffle.
 - Steam's original files and Points Shop items are **never modified**.
 
+### Share your selection
+
+- **Share › Export my videos** saves your catalog videos (and the Steam stock intros you enabled) in a small
+  `.bvmpack` file, with each video's enabled or disabled state.
+- Your friends use **Share › Import a pack**: the app shows what will happen, downloads the missing videos from
+  steamdeckrepo.com and applies the same states. It can also disable their other videos so Steam only plays the
+  pack's — nothing is ever deleted.
+- A pack only holds references, never video files: videos you imported from your own `.webm` files are not included.
+
 ### App
 
 - **Automatic updates**: the app checks GitHub at startup and installs a new version in one click. The installer is

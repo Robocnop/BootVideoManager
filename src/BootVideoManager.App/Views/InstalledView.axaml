@@ -14,6 +14,14 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Button Content="{x:Static l:Strings.Refresh}" Command="{Binding RefreshCommand}" />
                 <Button Content="{x:Static l:Strings.ImportWebm}" Command="{Binding ImportCommand}" IsEnabled="{Binding HasSteam}" />
+                <Button Content="{x:Static l:Strings.Share}" ToolTip.Tip="{x:Static l:Strings.ShareTip}" IsEnabled="{Binding HasSteam}">
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuItem Header="{x:Static l:Strings.ExportPack}" Command="{Binding ExportPackCommand}" />
+                            <MenuItem Header="{x:Static l:Strings.ImportPack}" Command="{Binding ImportPackCommand}" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
                 <Button Content="{x:Static l:Strings.OpenFolder}" Command="{Binding OpenFolderCommand}" IsEnabled="{Binding HasSteam}" />
                 <Button Classes="danger" Content="{x:Static l:Strings.RemoveAll}" Command="{Binding RemoveAllCommand}"
                         IsEnabled="{Binding !IsEmpty}" />
@@ -22,6 +30,7 @@
 
         <StackPanel Grid.Row="1" Spacing="8" Margin="0,10">
             <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+            <TextBlock Classes="muted small" Text="{Binding BusyText}" IsVisible="{Binding HasBusyText}" />
         </StackPanel>
 
         <Grid Grid.Row="2">

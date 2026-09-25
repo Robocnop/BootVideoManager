@@ -9,6 +9,12 @@ public interface IPlatformServices
     /// <returns>The chosen local <c>.webm</c> file, or <c>null</c> if cancelled.</returns>
     Task<string?> PickWebmFileAsync();
 
+    /// <returns>The chosen <c>.bvmpack</c> file to import, or <c>null</c> if cancelled.</returns>
+    Task<string?> PickPackFileAsync();
+
+    /// <returns>Where to save a new <c>.bvmpack</c> file, or <c>null</c> if cancelled.</returns>
+    Task<string?> PickPackSavePathAsync(string suggestedName);
+
     Task OpenUriAsync(Uri uri);
 
     /// <summary>Opens a folder in the file manager, creating it first if needed.</summary>

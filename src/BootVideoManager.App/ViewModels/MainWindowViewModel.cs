@@ -23,7 +23,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
 
         Updates = new UpdateViewModel(services.Updates, services.UpdateOptions, services.Settings, this, platform, canSelfUpdate ?? AppRuntime.CanSelfUpdate);
         Catalog = new CatalogViewModel(services.Catalog, services.Thumbnails, _installs, platform, services.Settings, new PreviewSoundViewModel(services.Settings));
-        Installed = new InstalledViewModel(_installs, services.Thumbnails, platform);
+        Installed = new InstalledViewModel(_installs, services.Catalog, services.Thumbnails, platform, this);
         Settings = new SettingsViewModel(services.SteamLocator, services.Settings, _installs, platform, this, Updates);
 
         _installs.InstalledChanged += (_, _) => OnPropertyChanged(nameof(InstalledCount));
