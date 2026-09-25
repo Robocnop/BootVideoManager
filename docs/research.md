@@ -78,6 +78,10 @@ Quirks observed across the full catalog:
 - The `uioverrides/movies` folder does not exist by default: create it.
 - Format: a real WebM (renaming an MP4 gives a black screen), 1280×800, ≤ 30 s recommended.
 - The user picks the video in **Settings > Customization** ("Use as Wake Movie" option for resuming from sleep).
+- That choice lives per device in `<Steam>/config/config.vdf`, `InstallConfigStore > Customization > StartupMovie`
+  (`MovieID` = Points Shop item or `0`, `LocalPath`, `Shuffle`). With `Shuffle` = `1`, Steam picks a random file of
+  `uioverrides/movies` at each start; with `0` (fresh Steam) it keeps the selected one, its own video by default.
+  Steam holds the file in memory and rewrites it on exit, so it must be closed before the file is edited.
 - On Windows, the video only plays when **Big Picture** starts.
 - A corrupted video can leave the Deck on a black screen: deleting the file restores the default animation.
 

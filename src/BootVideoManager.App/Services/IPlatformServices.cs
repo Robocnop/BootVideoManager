@@ -22,6 +22,16 @@ public interface IPlatformServices
 
     /// <summary>Closes the application, optionally starting it again (language change).</summary>
     void CloseApplication(bool restart);
+
+    /// <summary>Whether the Steam client is running.</summary>
+    bool IsSteamRunning();
+
+    /// <summary>Asks Steam to quit and waits for it.</summary>
+    /// <returns><c>false</c> when Steam is still running (timeout, or not supported on this system).</returns>
+    Task<bool> ShutdownSteamAsync(string steamRoot);
+
+    /// <summary>Starts Steam again (best effort).</summary>
+    void StartSteam(string steamRoot);
 }
 
 /// <summary>Modal confirmation shown inside the main window (works with mouse, keyboard and controller).</summary>

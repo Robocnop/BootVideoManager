@@ -52,6 +52,24 @@ internal sealed class FakePlatform : IPlatformServices
     }
 
     public void CloseApplication(bool restart) => ClosedWithRestart = restart;
+
+    public bool SteamRunning { get; set; }
+
+    public int SteamStarts { get; private set; }
+
+    public bool IsSteamRunning() => SteamRunning;
+
+    public Task<bool> ShutdownSteamAsync(string steamRoot)
+    {
+        SteamRunning = false;
+        return Task.FromResult(true);
+    }
+
+    public void StartSteam(string steamRoot)
+    {
+        SteamRunning = true;
+        SteamStarts++;
+    }
 }
 
 /// <summary>Real services whose settings, caches and logs live in a temporary folder deleted afterwards.</summary>

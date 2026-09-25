@@ -36,6 +36,9 @@ public sealed partial class InstallCoordinator : ObservableObject, IDisposable
     /// <summary>Raised on the UI thread whenever <see cref="Installed"/> changes.</summary>
     public event EventHandler? InstalledChanged;
 
+    /// <summary>Raised on the UI thread after videos were installed, imported or brought by a pack.</summary>
+    public event EventHandler? VideosAdded;
+
     /// <summary>Steam installation currently managed; <c>null</c> until one is found or chosen.</summary>
     [ObservableProperty]
     public partial SteamInstallation? Steam { get; set; }
@@ -94,9 +97,8 @@ public sealed partial class InstallCoordinator : ObservableObject, IDisposable
             }
 
             AppLog.Info($"Installed post {post.Id} ({post.Title}).");
-            _notifier.ShowInfo(Loc.T(
-                $"« {post.Title} » est installée. Sélectionnez-la dans Steam › Paramètres › Personnalisation.",
-                $"“{post.Title}” is installed. Select it in Steam › Settings › Customization."));
+            _notifier.ShowInfo(Loc.T($"« {post.Title} » est installée.", $"“{post.Title}” is installed.") + StartupMovieCoordinator.InstalledHint(Steam));
+            VideosAdded?.Invoke(this, EventArgs.Empty);
             return true;
         }
         catch (InstallException ex)
@@ -292,9 +294,8 @@ public sealed partial class InstallCoordinator : ObservableObject, IDisposable
         {
             var video = await _install.ImportLocalFileAsync(path, Steam.MoviesDirectory);
             AppLog.Info($"Imported {video.FileName}.");
-            _notifier.ShowInfo(Loc.T(
-                $"« {video.DisplayTitle} » a été importée. Sélectionnez-la dans Steam › Paramètres › Personnalisation.",
-                $"“{video.DisplayTitle}” was imported. Select it in Steam › Settings › Customization."));
+            _notifier.ShowInfo(Loc.T($"« {video.DisplayTitle} » a été importée.", $"“{video.DisplayTitle}” was imported.") + StartupMovieCoordinator.InstalledHint(Steam));
+            VideosAdded?.Invoke(this, EventArgs.Empty);
         }
         catch (InstallException ex)
         {
@@ -477,6 +478,8 @@ public sealed partial class InstallCoordinator : ObservableObject, IDisposable
         {
             _notifier.ShowInfo(summary);
         }
+
+        VideosAdded?.Invoke(this, EventArgs.Empty);
     }
 
     private static string DownloadStatus(int done, int total) =>

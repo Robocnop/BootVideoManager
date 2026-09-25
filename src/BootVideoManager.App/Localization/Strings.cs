@@ -135,11 +135,23 @@ public static class Strings
         "1. Installez une vidéo depuis le catalogue (ou importez un fichier .webm).",
         "1. Install a video from the catalog (or import a .webm file).");
 
-    public static string HowTo2 => Loc.T("2. Dans Steam, ouvrez Paramètres › Personnalisation.", "2. In Steam, open Settings › Customization.");
+    public static string HowTo2 => Loc.T(
+        "2. Steam doit avoir « Vidéo de démarrage aléatoire » activé (Paramètres › Personnalisation) : l'application vous propose de le faire pour vous. Steam choisit alors une de vos vidéos activées à chaque lancement.",
+        "2. Steam needs “Random startup movie” turned on (Settings › Customization): the app offers to do it for you. Steam then picks one of your enabled videos at each start.");
 
     public static string HowTo3 => Loc.T(
-        "3. Sélectionnez-la dans « Vidéo de démarrage ». Les animations de veille se choisissent de la même manière, dans la rubrique consacrée à la mise en veille.",
-        "3. Select it under “Startup movie”. Suspend animations are chosen the same way, in the suspend section.");
+        "3. Pour toujours voir la même vidéo, désactivez les autres depuis l'onglet Installées. Les animations de veille se choisissent dans la même page de Steam, rubrique mise en veille.",
+        "3. To always see the same video, disable the others from the Installed tab. Suspend animations are chosen on the same Steam page, in the suspend section.");
+
+    public static string ShuffleOffTitle => Loc.T(
+        "Steam ne lit pas vos vidéos : il joue toujours sa vidéo par défaut.",
+        "Steam does not play your videos: it always plays its default one.");
+
+    public static string ShuffleOffHint => Loc.T(
+        "L'option « Vidéo de démarrage aléatoire » de Steam est désactivée. Activez-la pour que Steam choisisse parmi vos vidéos activées (Steam sera redémarré s'il est ouvert).",
+        "Steam's “Random startup movie” option is off. Turn it on so Steam picks among your enabled videos (Steam restarts if it is open).");
+
+    public static string ShuffleOffFix => Loc.T("Activer", "Turn on");
 
     public static string HowToNote => Loc.T(
         "Sous Windows, la vidéo n'est lue qu'au lancement du mode Big Picture. Si Steam reste bloqué sur un écran noir, supprimez ou désactivez la vidéo depuis l'onglet Installées.",

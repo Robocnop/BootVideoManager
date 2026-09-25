@@ -43,7 +43,8 @@ The interface is available in **English and French**.
    (`win-arm64` for ARM PCs such as Snapdragon laptops) and run it. The installer is not code-signed yet, so Windows
    SmartScreen may warn about it: click *More info*, then *Run anyway*.
 2. Open Boot Video Manager, pick a video in the **Catalog** and click **Install**.
-3. In Steam, open **Settings › Customization** and select it as your **Startup movie**.
+3. If Steam still plays its own video, the app offers to turn on Steam's **Random startup movie** option for you
+   (Steam restarts if it is open): Steam then picks one of your enabled videos at each start.
 4. Launch **Big Picture mode** and enjoy.
 
 No administrator rights and no .NET runtime are needed: the installer ships every component and installs for the
@@ -76,6 +77,9 @@ current user by default.
 - **Enable or disable** any video with a switch, without deleting or re-downloading it — disabled videos are simply
   moved to a folder Steam ignores, so they also leave the shuffle.
 - Steam's original files and Points Shop items are **never modified**.
+- **Makes Steam actually play them**: a fresh Steam keeps playing its own video until *Random startup movie* is turned
+  on. The app detects it, offers to turn it on (closing and restarting Steam if needed) and keeps a copy of Steam's
+  `config.vdf` as `config.vdf.bvm-backup`. Only that one setting is changed.
 
 ### Share your selection
 
@@ -153,8 +157,9 @@ site's official `/post/download/{id}` link.
 The executable is not code-signed yet. Click *More info*, then *Run anyway*.
 
 **The video does not play when Steam starts.**
-On Windows, Steam only plays the startup movie when **Big Picture mode** starts. Also check that the video is
-selected in *Steam › Settings › Customization* and that it is enabled in the app's *Installed* tab.
+On Windows, Steam only plays the startup movie when **Big Picture mode** starts. Also check that the video is enabled
+in the app's *Installed* tab and that *Random startup movie* is on in *Steam › Settings › Customization* (the
+*Installed* tab shows a banner with a **Turn on** button when it is off).
 
 **Steam is stuck on a black screen.**
 Disable or delete the video from the *Installed* tab, then restart Steam.

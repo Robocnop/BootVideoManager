@@ -29,6 +29,16 @@
         </Grid>
 
         <StackPanel Grid.Row="1" Spacing="8" Margin="0,10">
+            <Border Classes="banner-update" IsVisible="{Binding StartupMovie.IsShuffleOff}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Static l:Strings.ShuffleOffTitle}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                        <TextBlock Classes="muted small" Text="{x:Static l:Strings.ShuffleOffHint}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="accent" Margin="16,0,0,0" VerticalAlignment="Center"
+                            Content="{x:Static l:Strings.ShuffleOffFix}" Command="{Binding StartupMovie.EnableCommand}" />
+                </Grid>
+            </Border>
             <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
             <TextBlock Classes="muted small" Text="{Binding BusyText}" IsVisible="{Binding HasBusyText}" />
         </StackPanel>

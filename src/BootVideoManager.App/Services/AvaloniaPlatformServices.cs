@@ -84,4 +84,10 @@ public sealed class AvaloniaPlatformServices(TopLevel topLevel) : IPlatformServi
         App.RestartRequested = restart;
         (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
     }
+
+    public bool IsSteamRunning() => SteamProcess.IsRunning();
+
+    public Task<bool> ShutdownSteamAsync(string steamRoot) => SteamProcess.ShutdownAsync(steamRoot);
+
+    public void StartSteam(string steamRoot) => SteamProcess.Start(steamRoot);
 }

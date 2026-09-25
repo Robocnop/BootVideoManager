@@ -26,9 +26,16 @@ public sealed partial class InstalledViewModel : ViewModelBase
     private readonly IPlatformServices _platform;
     private readonly INotifier _notifier;
 
-    public InstalledViewModel(InstallCoordinator installs, CatalogService catalog, ThumbnailCache thumbnails, IPlatformServices platform, INotifier notifier)
+    public InstalledViewModel(
+        InstallCoordinator installs,
+        StartupMovieCoordinator startupMovie,
+        CatalogService catalog,
+        ThumbnailCache thumbnails,
+        IPlatformServices platform,
+        INotifier notifier)
     {
         _installs = installs;
+        StartupMovie = startupMovie;
         _catalog = catalog;
         _thumbnails = thumbnails;
         _platform = platform;
@@ -46,6 +53,9 @@ public sealed partial class InstalledViewModel : ViewModelBase
     }
 
     public ObservableCollection<InstalledItemViewModel> Items { get; } = [];
+
+    /// <summary>Banner shown while Steam's "Random startup movie" option is off (it then ignores the enabled videos).</summary>
+    public StartupMovieCoordinator StartupMovie { get; }
 
     public string MoviesDirectory => _installs.Steam?.MoviesDirectory ?? Loc.T("Aucun dossier Steam n'est sélectionné", "No Steam folder is selected");
 
