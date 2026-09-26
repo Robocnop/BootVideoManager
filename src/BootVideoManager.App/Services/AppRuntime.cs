@@ -17,6 +17,11 @@ public static class AppRuntime
         + (RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "arm64" : "x64");
 
     /// <summary>
+    /// Running as a Flatpak (e.g. from Flathub): the store installs updates, so the app must not offer its own.
+    /// </summary>
+    public static bool IsFlatpak => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID"));
+
+    /// <summary>
     /// True when installed by the Windows installer (its uninstaller sits next to the executable): only then can the
     /// app update itself. Portable copies send the user to the releases page instead.
     /// </summary>

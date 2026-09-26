@@ -73,6 +73,32 @@ public static class Strings
 
     public static string ShowMore => Loc.T("Afficher davantage", "Show more");
 
+    public static string AccountTitle => Loc.T("Compte steamdeckrepo.com", "steamdeckrepo.com account");
+
+    public static string AccountHint => Loc.T(
+        "Connectez-vous avec Steam pour aimer des vidéos et retrouver vos j'aime dans le catalogue. La connexion se fait sur les vraies pages de Steam : l'application ne voit jamais votre mot de passe, elle garde seulement la session du site (chiffrée sur ce PC).",
+        "Sign in with Steam to like videos and find your likes in the catalog. You sign in on Steam's real pages: the app never sees your password, it only keeps the site session (encrypted on this PC).");
+
+    public static string UpdatesManagedByStore => Loc.T(
+        "Cette copie a été installée depuis Flathub : les mises à jour arrivent par votre logithèque (Discover, Logithèque, Gestionnaire de logiciels…).",
+        "This copy was installed from Flathub: updates come through your software center (Discover, GNOME Software, Software Manager…).");
+
+    public static string SignInWithSteam => Loc.T("Se connecter avec Steam", "Sign in with Steam");
+
+    public static string SignOut => Loc.T("Se déconnecter", "Sign out");
+
+    public static string SignInToolTip => Loc.T(
+        "Connectez votre compte steamdeckrepo.com (via Steam) pour aimer des vidéos et retrouver vos j'aime.",
+        "Connect your steamdeckrepo.com account (through Steam) to like videos and find your likes.");
+
+    public static string AccountChipToolTip => Loc.T(
+        "Connecté à steamdeckrepo.com : cliquez pour gérer le compte ou vous déconnecter.",
+        "Signed in to steamdeckrepo.com: click to manage the account or sign out.");
+
+    public static string RefreshLikes => Loc.T("Recharger mes j'aime", "Reload my likes");
+
+    public static string LikedOnly => Loc.T("N'afficher que mes j'aime", "Only show my likes");
+
     public static string Queued => Loc.T("En attente…", "Queued…");
 
     // Installed

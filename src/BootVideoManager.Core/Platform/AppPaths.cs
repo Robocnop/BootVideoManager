@@ -12,6 +12,12 @@ public sealed record AppPaths(string ConfigDirectory, string CacheDirectory, str
 
     public string SettingsPath => Path.Combine(ConfigDirectory, "settings.json");
 
+    /// <summary>steamdeckrepo.com sign-in (encrypted on Windows).</summary>
+    public string AccountPath => Path.Combine(ConfigDirectory, "account.dat");
+
+    /// <summary>Browser profile of the sign-in window (kept out of the install folder, which may be read-only).</summary>
+    public string WebViewDataDirectory => Path.Combine(CacheDirectory, "webview");
+
     public string CatalogCacheDirectory => Path.Combine(CacheDirectory, "catalog");
 
     public string ThumbnailCacheDirectory => Path.Combine(CacheDirectory, "thumbnails");

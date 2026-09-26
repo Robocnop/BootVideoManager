@@ -28,6 +28,9 @@ public static class UserMessages
             RepoApiErrorKind.InvalidResponse => Loc.T(
                 "La réponse de steamdeckrepo.com est illisible. Le site a peut-être évolué : une mise à jour de l'application est sans doute nécessaire.",
                 "steamdeckrepo.com's answer could not be read. The site may have changed: the app probably needs an update."),
+            RepoApiErrorKind.SignedOut => Loc.T(
+                "Votre session steamdeckrepo.com a expiré. Reconnectez-vous dans l'onglet Réglages.",
+                "Your steamdeckrepo.com session has expired. Sign in again from the Settings tab."),
             _ => exception.Message,
         };
     }

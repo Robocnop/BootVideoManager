@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using BootVideoManager.Core.Account;
 using BootVideoManager.Core.Api;
 using BootVideoManager.Core.Caching;
 using BootVideoManager.Core.Catalog;
@@ -25,6 +26,8 @@ public sealed class AppServices : IDisposable
         SteamLocator steamLocator,
         UpdateService updates,
         UpdateOptions updateOptions,
+        SiteAccountClient account,
+        SiteSessionStore accountSessions,
         FileLog log)
     {
         _http = http;
@@ -37,6 +40,8 @@ public sealed class AppServices : IDisposable
         SteamLocator = steamLocator;
         Updates = updates;
         UpdateOptions = updateOptions;
+        Account = account;
+        AccountSessions = accountSessions;
         Log = log;
     }
 
@@ -57,6 +62,11 @@ public sealed class AppServices : IDisposable
     public UpdateService Updates { get; }
 
     public UpdateOptions UpdateOptions { get; }
+
+    /// <summary>steamdeckrepo.com account (sign-in, likes).</summary>
+    public SiteAccountClient Account { get; }
+
+    public SiteSessionStore AccountSessions { get; }
 
     public FileLog Log { get; }
 
@@ -87,6 +97,8 @@ public sealed class AppServices : IDisposable
                 OperatingSystem.IsWindows() ? new WindowsSteamRegistry() : null),
             new UpdateService(http, updateOptions, fileSystem, paths.UpdateDownloadDirectory, AppRuntime.Version, AppRuntime.RuntimeIdentifier),
             updateOptions,
+            new SiteAccountClient(apiOptions),
+            new SiteSessionStore(fileSystem, paths.AccountPath),
             new FileLog(fileSystem, paths.LogDirectory, time));
     }
 
@@ -95,6 +107,7 @@ public sealed class AppServices : IDisposable
         Catalog.Dispose();
         Install.Dispose();
         Thumbnails.Dispose();
+        Account.Dispose();
         _http.Dispose();
     }
 }

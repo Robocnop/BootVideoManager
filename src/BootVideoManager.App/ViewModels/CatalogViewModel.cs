@@ -24,6 +24,7 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
     private readonly CatalogService _catalog;
     private readonly ThumbnailCache _thumbnails;
     private readonly InstallCoordinator _installs;
+    private readonly AccountCoordinator _account;
     private readonly IPlatformServices _platform;
     private readonly SettingsStore _settings;
     private readonly Dictionary<string, PostCardViewModel> _cards = new(StringComparer.Ordinal);
@@ -36,6 +37,7 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
         CatalogService catalog,
         ThumbnailCache thumbnails,
         InstallCoordinator installs,
+        AccountCoordinator account,
         IPlatformServices platform,
         SettingsStore settings,
         PreviewSoundViewModel previewSound)
@@ -43,6 +45,7 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
         _catalog = catalog;
         _thumbnails = thumbnails;
         _installs = installs;
+        _account = account;
         _platform = platform;
         _settings = settings;
         PreviewSound = previewSound;
@@ -92,7 +95,27 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
 
             SelectedPost?.Card.SyncInstalledState();
         };
+
+        _account.LikesChanged += (_, _) => OnLikesChanged();
+        _account.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AccountCoordinator.IsSignedIn))
+            {
+                OnPropertyChanged(nameof(IsSignedIn));
+            }
+        };
     }
+
+    /// <summary>Signed in to steamdeckrepo.com: the "My likes" filter is available.</summary>
+    public bool IsSignedIn => _account.IsSignedIn;
+
+    public string LikedFilterText => string.Create(
+        CultureInfo.CurrentCulture,
+        $"\u2665 {Loc.T("Mes j'aime", "My likes")} ({_account.LikedCount:N0})");
+
+    /// <summary>Only show the posts the user liked on the site.</summary>
+    [ObservableProperty]
+    public partial bool ShowLikedOnly { get; set; }
 
     public ObservableCollection<PostCardViewModel> Items { get; } = [];
 
@@ -194,6 +217,7 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
     private void ResetFilters()
     {
         SearchText = string.Empty;
+        ShowLikedOnly = false;
         SelectedType = TypeOptions[0];
         SelectedDevice = DeviceOptions[0];
         SelectedDuration = DurationOptions[0];
@@ -209,6 +233,8 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
         _searchDebounce = new CancellationTokenSource();
         _ = ApplyQueryAfterDelayAsync(_searchDebounce.Token);
     }
+
+    partial void OnShowLikedOnlyChanged(bool value) => ApplyQuery();
 
     partial void OnSelectedSortChanged(Choice<CatalogSort> value) => OnFiltersChanged();
 
@@ -281,6 +307,12 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
             MaxDuration = duration.MaxSeconds is { } max ? TimeSpan.FromSeconds(max) : null,
         });
 
+        if (ShowLikedOnly)
+        {
+            var liked = _account.LikedIds;
+            _results = _results.Where(post => liked.Contains(post.Id)).ToArray();
+        }
+
         var previous = Items.ToList();
         Items.Clear();
         foreach (var card in previous)
@@ -304,6 +336,7 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
         {
             var card = GetOrCreateCard(post);
             card.SyncInstalledState();
+            card.SyncLikeState();
             Items.Add(card);
             _ = card.EnsureThumbnailAsync();
         }
@@ -319,9 +352,27 @@ public sealed partial class CatalogViewModel : ViewModelBase, IDisposable
             return existing;
         }
 
-        var card = new PostCardViewModel(post, _installs, _thumbnails, OpenDetail);
+        var card = new PostCardViewModel(post, _installs, _account, _thumbnails, OpenDetail);
         _cards[post.Id] = card;
         return card;
+    }
+
+    private void OnLikesChanged()
+    {
+        OnPropertyChanged(nameof(LikedFilterText));
+        if (!_account.IsSignedIn && ShowLikedOnly)
+        {
+            ShowLikedOnly = false; // Also re-applies the query.
+        }
+        else if (ShowLikedOnly)
+        {
+            ApplyQuery();
+        }
+
+        foreach (var card in _cards.Values)
+        {
+            card.SyncLikeState();
+        }
     }
 
     private void OpenDetail(PostCardViewModel card) =>

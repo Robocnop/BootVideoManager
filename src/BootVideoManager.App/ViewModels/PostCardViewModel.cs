@@ -16,19 +16,23 @@ public sealed partial class PostCardViewModel : ViewModelBase
     private const int ThumbnailDecodeWidth = 320;
 
     private readonly InstallCoordinator _installs;
+    private readonly AccountCoordinator _account;
     private readonly ThumbnailCache _thumbnails;
     private readonly Action<PostCardViewModel> _openDetail;
     private CancellationTokenSource? _installCancellation;
     private bool _thumbnailRequested;
     private int _thumbnailGeneration;
 
-    public PostCardViewModel(Post post, InstallCoordinator installs, ThumbnailCache thumbnails, Action<PostCardViewModel> openDetail)
+    public PostCardViewModel(Post post, InstallCoordinator installs, AccountCoordinator account, ThumbnailCache thumbnails, Action<PostCardViewModel> openDetail)
     {
         Post = post;
         _installs = installs;
+        _account = account;
         _thumbnails = thumbnails;
         _openDetail = openDetail;
         IsInstalled = installs.IsInstalled(post.Id);
+        LikeCount = post.Likes;
+        SyncLikeState();
     }
 
     public Post Post { get; }
@@ -51,7 +55,7 @@ public sealed partial class PostCardViewModel : ViewModelBase
 
     public string StatsText => string.Create(
         CultureInfo.CurrentCulture,
-        $"{Post.Likes:N0} {Loc.T("j'aime", Post.Likes == 1 ? "like" : "likes")} · {Post.Downloads:N0} {(Post.Downloads > 1 ? Loc.T("téléchargements", "downloads") : Loc.T("téléchargement", "download"))}");
+        $"{LikeCount:N0} {Loc.T("j'aime", LikeCount == 1 ? "like" : "likes")} · {Post.Downloads:N0} {(Post.Downloads > 1 ? Loc.T("téléchargements", "downloads") : Loc.T("téléchargement", "download"))}");
 
     public string TagsText => string.Join(
         " · ",
@@ -80,6 +84,28 @@ public sealed partial class PostCardViewModel : ViewModelBase
     public partial bool IsProgressIndeterminate { get; set; }
 
     public bool CanInstall => !IsInstalled && !IsInstalling;
+
+    /// <summary>Signed in to steamdeckrepo.com: the heart button is shown.</summary>
+    [ObservableProperty]
+    public partial bool CanLike { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LikeGlyph), nameof(LikeToolTip))]
+    public partial bool IsLiked { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLikePending { get; set; }
+
+    /// <summary>Catalog count, updated with the site's answer after a like.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StatsText))]
+    public partial int LikeCount { get; set; }
+
+    public string LikeGlyph => IsLiked ? "\u2665" : "\u2661";
+
+    public string LikeToolTip => IsLiked
+        ? Loc.T("Retirer mon j'aime sur steamdeckrepo.com", "Remove my like on steamdeckrepo.com")
+        : Loc.T("J'aime (sur steamdeckrepo.com)", "Like (on steamdeckrepo.com)");
 
     public static string? DeviceLabel(DeviceTag device) => device switch
     {
@@ -122,6 +148,12 @@ public sealed partial class PostCardViewModel : ViewModelBase
 
     public void SyncInstalledState() => IsInstalled = _installs.IsInstalled(Post.Id);
 
+    public void SyncLikeState()
+    {
+        CanLike = _account.IsSignedIn;
+        IsLiked = _account.IsLiked(Post.Id);
+    }
+
     [RelayCommand]
     private void OpenDetail() => _openDetail(this);
 
@@ -160,6 +192,29 @@ public sealed partial class PostCardViewModel : ViewModelBase
             IsQueued = false;
             IsInstalling = false;
             SyncInstalledState();
+        }
+    }
+
+    [RelayCommand]
+    private async Task ToggleLikeAsync()
+    {
+        if (IsLikePending)
+        {
+            return;
+        }
+
+        IsLikePending = true;
+        try
+        {
+            if (await _account.ToggleLikeAsync(Post.Id) is { } state)
+            {
+                IsLiked = state.Liked;
+                LikeCount = state.Likes;
+            }
+        }
+        finally
+        {
+            IsLikePending = false;
         }
     }
 

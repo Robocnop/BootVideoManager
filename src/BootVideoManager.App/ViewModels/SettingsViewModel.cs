@@ -31,10 +31,19 @@ public sealed partial class SettingsViewModel : ViewModelBase
         SteamLocator locator,
         SettingsStore settingsStore,
         InstallCoordinator installs,
+        AccountCoordinator account,
         IPlatformServices platform,
         INotifier notifier,
         UpdateViewModel updates)
     {
+        Account = account;
+        account.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(AccountCoordinator.User) or nameof(AccountCoordinator.LikedCount) or nameof(AccountCoordinator.LikesLoaded))
+            {
+                OnPropertyChanged(nameof(AccountStatusText));
+            }
+        };
         _locator = locator;
         _settingsStore = settingsStore;
         _installs = installs;
@@ -66,6 +75,14 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<SteamChoice> Detected { get; } = [];
 
     public UpdateViewModel Updates { get; }
+
+    public AccountCoordinator Account { get; }
+
+    public string AccountStatusText => Account.User is { } user
+        ? Account.LikesLoaded
+            ? string.Create(CultureInfo.CurrentCulture, $"{Loc.T("Connecté en tant que", "Signed in as")} {user.Name} · {Account.LikedCount:N0} {Loc.T("j'aime", Account.LikedCount == 1 ? "like" : "likes")}")
+            : $"{Loc.T("Connecté en tant que", "Signed in as")} {user.Name}"
+        : Loc.T("Non connecté", "Not signed in");
 
     public IReadOnlyList<Choice<string?>> LanguageOptions { get; }
 
@@ -195,6 +212,15 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
         await ApplyAsync(installation, installation.RootPath);
     }
+
+    [RelayCommand]
+    private Task SignInAsync() => Account.SignInAsync();
+
+    [RelayCommand]
+    private Task SignOutAsync() => Account.SignOutAsync();
+
+    [RelayCommand]
+    private Task RefreshLikesAsync() => Account.RefreshLikesAsync(quiet: false);
 
     [RelayCommand]
     private Task OpenSiteAsync() => _platform.OpenUriAsync(SiteUri);

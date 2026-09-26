@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace BootVideoManager.App.Services;
 
 /// <summary>OS integrations the view models need, kept behind an interface so they stay UI-toolkit agnostic.</summary>
@@ -16,6 +18,16 @@ public interface IPlatformServices
     Task<string?> PickPackSavePathAsync(string suggestedName);
 
     Task OpenUriAsync(Uri uri);
+
+    /// <summary>
+    /// Opens a browser window on <paramref name="startUri"/> so the user signs in on the real pages (Steam's
+    /// included); the app never sees the password. Once a page accepted by <paramref name="isFinished"/> has loaded,
+    /// the window closes and its cookies are returned.
+    /// </summary>
+    /// <param name="dataDirectory">Browser profile folder (private browsing: nothing of the Steam session is kept).</param>
+    /// <returns>The cookies, or <c>null</c> if the user closed the window first.</returns>
+    /// <exception cref="InvalidOperationException">No embedded browser is available on this system.</exception>
+    Task<IReadOnlyList<Cookie>?> SignInWithBrowserAsync(Uri startUri, Func<Uri, bool> isFinished, string dataDirectory);
 
     /// <summary>Opens a folder in the file manager, creating it first if needed.</summary>
     Task OpenFolderAsync(string path);

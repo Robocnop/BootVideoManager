@@ -26,7 +26,13 @@
                                                 Volume="{Binding Sound.Volume}" IsMuted="{Binding Sound.IsMuted}" />
                         <TextBlock Classes="h2" Text="{Binding Card.Title}" TextWrapping="Wrap" Margin="0,8,0,0" />
                         <TextBlock Classes="muted" Text="{Binding Card.AuthorText}" />
-                        <TextBlock Classes="muted small" Text="{Binding Card.StatsText}" />
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Classes="muted small" Text="{Binding Card.StatsText}" VerticalAlignment="Center" />
+                            <Button Classes="like" Classes.liked="{Binding Card.IsLiked}" Content="{Binding Card.LikeGlyph}"
+                                    Command="{Binding Card.ToggleLikeCommand}" IsVisible="{Binding Card.CanLike}"
+                                    IsEnabled="{Binding !Card.IsLikePending}"
+                                    ToolTip.Tip="{Binding Card.LikeToolTip}" AutomationProperties.Name="{Binding Card.LikeToolTip}" />
+                        </StackPanel>
                         <TextBlock Classes="muted small" Text="{Binding Card.TagsText}" />
                         <TextBlock Classes="muted small" Text="{Binding UploadedText}" />
 
@@ -70,6 +76,9 @@
                           AutomationProperties.Name="{x:Static l:Strings.Device}" />
                 <ComboBox Width="180" ItemsSource="{Binding DurationOptions}" SelectedItem="{Binding SelectedDuration}"
                           AutomationProperties.Name="{x:Static l:Strings.Duration}" />
+                <ToggleButton Content="{Binding LikedFilterText}" IsChecked="{Binding ShowLikedOnly}"
+                              IsVisible="{Binding IsSignedIn}" ToolTip.Tip="{x:Static l:Strings.LikedOnly}"
+                              AutomationProperties.Name="{x:Static l:Strings.LikedOnly}" />
                 <Button Content="{x:Static l:Strings.ResetFilters}" Command="{Binding ResetFiltersCommand}" />
                 <Button Content="{x:Static l:Strings.Refresh}" Command="{Binding RefreshCommand}" />
             </WrapPanel>
@@ -124,7 +133,14 @@
                                             <TextBlock Classes="card-title" Text="{Binding Title}" TextTrimming="CharacterEllipsis"
                                                        ToolTip.Tip="{Binding Title}" />
                                             <TextBlock Classes="muted small" Text="{Binding AuthorText}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Classes="muted small" Text="{Binding StatsText}" TextTrimming="CharacterEllipsis" />
+                                            <Grid ColumnDefinitions="*,Auto" Height="22">
+                                                <TextBlock Classes="muted small" Text="{Binding StatsText}" TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center" />
+                                                <Button Grid.Column="1" Classes="like" Classes.liked="{Binding IsLiked}" Content="{Binding LikeGlyph}"
+                                                        Command="{Binding ToggleLikeCommand}" IsVisible="{Binding CanLike}"
+                                                        IsEnabled="{Binding !IsLikePending}"
+                                                        ToolTip.Tip="{Binding LikeToolTip}" AutomationProperties.Name="{Binding LikeToolTip}" />
+                                            </Grid>
                                             <TextBlock Classes="muted small" Text="{Binding TagsText}" TextTrimming="CharacterEllipsis" />
                                             <Grid Margin="0,8,0,0" Height="32">
                                                 <Button Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"

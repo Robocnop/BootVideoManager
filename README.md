@@ -60,6 +60,8 @@ current user by default.
 - A **looping preview** inside the app, with pause, mute and volume.
 - Your sort, filters and preview volume are **remembered** between sessions.
 - **Works offline** with the last known catalog.
+- **Sign in with Steam** (on Steam's own page, the app never sees your password) to **like** videos and show only
+  **your likes**; the account appears at the top of the window.
 
 ### Safe installation
 
@@ -139,7 +141,8 @@ site's official `/post/download/{id}` link.
 | `BootVideoManager-<version>-win-arm64-setup.exe` | Windows on ARM |
 | `BootVideoManager-<version>-win-x64-portable.exe` | Windows, no installation (single file) |
 | `BootVideoManager-<version>-win-arm64-portable.exe` | Windows on ARM, no installation |
-| `BootVideoManager-<version>-linux-x64.tar.gz` | Linux x64 (experimental, see below) |
+| `BootVideoManager-<version>-x86_64.flatpak` | **Linux / Steam Deck — recommended** (until the app is on Flathub) |
+| `BootVideoManager-<version>-linux-x64.tar.gz` | Linux x64, no installation (advanced) |
 | `SHA256SUMS.txt` | Checksums of every file |
 
 - The **installer** adds Start menu (and optional desktop) shortcuts and an entry in *Settings › Apps*. It can
@@ -147,9 +150,13 @@ site's official `/post/download/{id}` link.
   copy; uninstalling offers to remove settings and cache and never touches the videos placed in Steam.
 - The **portable** executable contains everything; its native libraries are extracted to `%TEMP%\.net` on first
   launch. It tells you when a new version is out but cannot replace itself: the button opens the download page.
-- **Linux / Steam Deck (desktop mode)**: extract the archive, then `chmod +x BootVideoManager && ./BootVideoManager`.
-  Previews use the system libvlc (install VLC with your package manager); without it everything works except the
-  preview. This build is covered by unit tests but has not been tried on real hardware yet.
+- **Linux / Steam Deck (desktop mode)**: download the `.flatpak` file and open it — your software center
+  (Discover, GNOME Software, Linux Mint's Software Manager…) installs it with everything included (video previews,
+  Steam sign-in). From a terminal: `flatpak install --user BootVideoManager-<version>-x86_64.flatpak`. It updates
+  through Flathub once the app is published there. If Steam itself is the Flatpak version, pick its folder
+  (`~/.var/app/com.valvesoftware.Steam/.local/share/Steam`) with *Settings › Choose a folder…*.
+- The **Linux archive** needs VLC from your package manager for previews: extract it, then
+  `chmod +x BootVideoManager && ./BootVideoManager`.
 
 ## Troubleshooting
 
@@ -228,6 +235,7 @@ tests/BootVideoManager.Core.Tests  xUnit v3
 tests/BootVideoManager.App.Tests   headless Avalonia UI tests
 packaging/windows                  Inno Setup script (silent update mode: /UPDATE=1)
 packaging/linux                    AppImage script and desktop entry
+packaging/flatpak                  Flatpak / Flathub manifest (see its README)
 ```
 
 Design notes: [docs/architecture.md](docs/architecture.md) · API and Steam paths research:
@@ -235,10 +243,9 @@ Design notes: [docs/architecture.md](docs/architecture.md) · API and Steam path
 
 ## Known limitations
 
-- **Tested on Windows 11 only.** The Linux code (paths, Flatpak/Snap) is unit tested but has not run on a real
-  Steam Deck.
+- **Tested mostly on Windows 11.** The Linux build runs on Linux Mint; it has not been tried on a real Steam Deck yet.
 - **No OLED / LCD filter**: steamdeckrepo.com does not provide that information.
-- **Linux previews** depend on the system libvlc; there is no Flatpak package yet.
+- **Linux archive previews** depend on the system libvlc (the Flatpak bundles its own).
 - **Controller use**: keyboard navigation, visible focus and infinite scrolling work, but there is no dedicated
   Game Mode interface yet.
 - Suspend animations install like startup videos; selecting them as the resume animation has not been verified on a

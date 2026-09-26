@@ -19,6 +19,9 @@ public enum RepoApiErrorKind
 
     /// <summary>The body could not be understood (site redesign, maintenance page…).</summary>
     InvalidResponse,
+
+    /// <summary>The steamdeckrepo.com session expired or was revoked: the user must sign in again.</summary>
+    SignedOut,
 }
 
 /// <summary>Single exception type surfaced by the API layer; never leaks transport exceptions.</summary>

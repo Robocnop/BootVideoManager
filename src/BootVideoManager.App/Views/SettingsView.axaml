@@ -53,6 +53,23 @@
             </Border>
 
             <Border Classes="panel">
+                <StackPanel Spacing="10">
+                    <TextBlock Classes="h2" Text="{x:Static l:Strings.AccountTitle}" />
+                    <Border Classes="accent-rule" Margin="0,0,0,4" />
+                    <TextBlock Classes="muted small" TextWrapping="Wrap" Text="{x:Static l:Strings.AccountHint}" />
+                    <TextBlock Text="{Binding AccountStatusText}" FontWeight="SemiBold" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="accent" Content="{x:Static l:Strings.SignInWithSteam}" Command="{Binding SignInCommand}"
+                                IsVisible="{Binding !Account.IsSignedIn}" IsEnabled="{Binding !Account.IsBusy}" />
+                        <Button Content="{x:Static l:Strings.RefreshLikes}" Command="{Binding RefreshLikesCommand}"
+                                IsVisible="{Binding Account.IsSignedIn}" IsEnabled="{Binding !Account.IsBusy}" />
+                        <Button Content="{x:Static l:Strings.SignOut}" Command="{Binding SignOutCommand}"
+                                IsVisible="{Binding Account.IsSignedIn}" IsEnabled="{Binding !Account.IsBusy}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="panel">
                 <StackPanel Spacing="8">
                     <TextBlock Classes="h2" Text="{x:Static l:Strings.HowToTitle}" />
                     <Border Classes="accent-rule" Margin="0,0,0,4" />
@@ -67,8 +84,11 @@
                 <StackPanel Spacing="10">
                     <TextBlock Classes="h2" Text="{x:Static l:Strings.UpdatesTitle}" />
                     <Border Classes="accent-rule" Margin="0,0,0,4" />
-                    <CheckBox Content="{x:Static l:Strings.CheckAtStartup}" IsChecked="{Binding Updates.CheckOnStartup}" />
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock TextWrapping="Wrap" Text="{x:Static l:Strings.UpdatesManagedByStore}"
+                               IsVisible="{Binding Updates.IsManagedByStore}" />
+                    <CheckBox Content="{x:Static l:Strings.CheckAtStartup}" IsChecked="{Binding Updates.CheckOnStartup}"
+                              IsVisible="{Binding !Updates.IsManagedByStore}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !Updates.IsManagedByStore}">
                         <Button Content="{x:Static l:Strings.CheckNow}" Command="{Binding Updates.CheckNowCommand}"
                                 IsEnabled="{Binding Updates.IsIdle}" />
                         <Button Classes="accent" Content="{Binding Updates.InstallButtonText}" Command="{Binding Updates.InstallCommand}"

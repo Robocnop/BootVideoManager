@@ -94,7 +94,7 @@ public sealed class RepoApiClient : IRepoApiClient
         return request;
     }
 
-    private static void EnsureSuccess(HttpResponseMessage response)
+    internal static void EnsureSuccess(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode)
         {
@@ -118,7 +118,7 @@ public sealed class RepoApiClient : IRepoApiClient
     }
 
     /// <summary>Translates transport exceptions into <see cref="RepoApiException"/>; user cancellation passes through.</summary>
-    private static async Task<T> GuardAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken)
+    internal static async Task<T> GuardAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken)
     {
         try
         {

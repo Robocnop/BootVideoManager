@@ -18,7 +18,7 @@
     <Grid>
         <DockPanel>
             <Border DockPanel.Dock="Top" Classes="topbar">
-                <Grid ColumnDefinitions="Auto,Auto,*">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,*">
                     <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
                                 ToolTip.Tip="{x:Static l:Strings.AppTagline}">
                         <Image Source="/Assets/app-icon.png" Width="34" Height="34" VerticalAlignment="Center" />
@@ -49,7 +49,27 @@
                         </ListBoxItem>
                     </ListBox>
 
-                    <Border Grid.Column="2" Classes="steam-chip" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    <!-- steamdeckrepo.com account: sign-in button, or who is signed in. -->
+                    <Panel Grid.Column="2" Margin="20,0,0,0" VerticalAlignment="Center">
+                        <Button Classes="accent" Content="{x:Static l:Strings.SignInWithSteam}" Command="{Binding SignInCommand}"
+                                IsVisible="{Binding !Account.IsSignedIn}" IsEnabled="{Binding !Account.IsBusy}"
+                                ToolTip.Tip="{x:Static l:Strings.SignInToolTip}" />
+                        <Button Classes="account-chip" Command="{Binding OpenAccountSettingsCommand}"
+                                IsVisible="{Binding Account.IsSignedIn}"
+                                ToolTip.Tip="{x:Static l:Strings.AccountChipToolTip}"
+                                AutomationProperties.Name="{Binding AccountName}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="26" Height="26" CornerRadius="13" ClipToBounds="True"
+                                        Background="{StaticResource SurfaceRaisedBrush}">
+                                    <Image Source="{Binding AccountAvatar}" Stretch="UniformToFill" />
+                                </Border>
+                                <TextBlock Text="{Binding AccountName}" VerticalAlignment="Center" MaxWidth="160"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Button>
+                    </Panel>
+
+                    <Border Grid.Column="3" Classes="steam-chip" HorizontalAlignment="Right" VerticalAlignment="Center"
                             Margin="24,0,0,0" ToolTip.Tip="{Binding SteamText}">
                         <TextBlock Classes="muted small" Text="{Binding SteamText}" TextTrimming="CharacterEllipsis" />
                     </Border>

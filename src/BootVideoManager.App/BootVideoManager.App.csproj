@@ -58,6 +58,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Avalonia.Controls.WebView" />
     <PackageReference Include="LibVLCSharp" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" />
     <!-- Linux uses the system libvlc (or the one bundled by the Flatpak runtime). -->

@@ -1,3 +1,4 @@
+using Avalonia.Media.Imaging;
 using BootVideoManager.App.Services;
 using BootVideoManager.Core.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -20,14 +21,23 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
         ArgumentNullException.ThrowIfNull(services);
         _services = services;
         _installs = new InstallCoordinator(services.Install, this, this);
+        Account = new AccountCoordinator(services.Account, services.AccountSessions, platform, this, services.Paths.WebViewDataDirectory);
 
-        Updates = new UpdateViewModel(services.Updates, services.UpdateOptions, services.Settings, this, platform, canSelfUpdate ?? AppRuntime.CanSelfUpdate);
-        Catalog = new CatalogViewModel(services.Catalog, services.Thumbnails, _installs, platform, services.Settings, new PreviewSoundViewModel(services.Settings));
+        Updates = new UpdateViewModel(services.Updates, services.UpdateOptions, services.Settings, this, platform, canSelfUpdate ?? AppRuntime.CanSelfUpdate, AppRuntime.IsFlatpak);
+        Catalog = new CatalogViewModel(services.Catalog, services.Thumbnails, _installs, Account, platform, services.Settings, new PreviewSoundViewModel(services.Settings));
         StartupMovie = new StartupMovieCoordinator(_installs, platform, this, this);
         Installed = new InstalledViewModel(_installs, StartupMovie, services.Catalog, services.Thumbnails, platform, this);
-        Settings = new SettingsViewModel(services.SteamLocator, services.Settings, _installs, platform, this, Updates);
+        Settings = new SettingsViewModel(services.SteamLocator, services.Settings, _installs, Account, platform, this, Updates);
 
         _installs.InstalledChanged += (_, _) => OnPropertyChanged(nameof(InstalledCount));
+        Account.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AccountCoordinator.User))
+            {
+                OnPropertyChanged(nameof(AccountName));
+                _ = LoadAccountAvatarAsync();
+            }
+        };
         _installs.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(InstallCoordinator.Steam))
@@ -38,6 +48,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
     }
 
     public CatalogViewModel Catalog { get; }
+
+    /// <summary>steamdeckrepo.com account (sign-in and likes).</summary>
+    public AccountCoordinator Account { get; }
 
     public InstalledViewModel Installed { get; }
 
@@ -69,6 +82,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
 
     public int InstalledCount => _installs.Installed.Count;
 
+    /// <summary>Top bar: the signed-in steamdeckrepo.com account.</summary>
+    public string AccountName => Account.User?.Name ?? string.Empty;
+
+    [ObservableProperty]
+    public partial Bitmap? AccountAvatar { get; private set; }
+
     /// <summary>Resolves the Steam folder, then loads the installed videos and the catalog in parallel.</summary>
     /// <param name="steamRootOverride">Optional <c>--steam-root</c> value.</param>
     public async Task InitializeAsync(string? steamRootOverride)
@@ -78,7 +97,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
             SelectedTabIndex = SettingsTabIndex;
         }
 
-        await Task.WhenAll(_installs.RefreshAsync(), Catalog.LoadAsync(forceRefresh: false), Updates.CheckAtStartupAsync());
+        await Task.WhenAll(_installs.RefreshAsync(), Catalog.LoadAsync(forceRefresh: false), Updates.CheckAtStartupAsync(), Account.InitializeAsync());
         _ = Task.Run(_services.Thumbnails.Trim);
     }
 
@@ -105,6 +124,29 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDialogService,
     {
         AppLog.Warn($"Error shown to the user: {message}");
         Show(message, isError: true);
+    }
+
+    /// <summary>Top bar button shown while signed out: makes the feature discoverable without reading the docs.</summary>
+    [RelayCommand]
+    private Task SignInAsync() => Account.SignInAsync();
+
+    /// <summary>Top bar account chip: its settings (reload likes, sign out) live in the Settings tab.</summary>
+    [RelayCommand]
+    private void OpenAccountSettings() => SelectedTabIndex = SettingsTabIndex;
+
+    private async Task LoadAccountAvatarAsync()
+    {
+        var avatarUri = Account.User?.AvatarUri;
+        var bitmap = await BitmapLoader.LoadAsync(_services.Thumbnails, avatarUri, 64);
+        if (Account.User?.AvatarUri != avatarUri)
+        {
+            bitmap?.Dispose(); // Signed out (or in as someone else) meanwhile.
+            return;
+        }
+
+        var previous = AccountAvatar;
+        AccountAvatar = bitmap;
+        previous?.Dispose();
     }
 
     /// <summary>Escape closes the dialog first, then the detail panel.</summary>

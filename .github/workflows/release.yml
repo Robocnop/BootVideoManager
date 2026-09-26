@@ -1,5 +1,5 @@
-# Pushing a tag vX.Y.Z builds the Windows installers and portable .exe (x64 and ARM64) and the Linux archive, then
-# attaches them with their SHA-256 to the GitHub release of that tag. Tags with a suffix (v1.1.0-beta) become
+# Pushing a tag vX.Y.Z builds the Windows installers and portable .exe (x64 and ARM64), the Linux archive and the
+# Flatpak bundle, then attaches them with their SHA-256 to the GitHub release of that tag. Tags with a suffix (v1.1.0-beta) become
 # pre-releases, which the in-app updater ignores; notes come from docs/release-notes/<tag>.md when present.
 name: Release
 
@@ -77,8 +77,36 @@ jobs:
           path: artifacts/publish/*.tar.gz
           if-no-files-found: error
 
+  # Same manifest as Flathub: a .flatpak bundle anyone can install with a double click (or `flatpak install`) before
+  # the app is on Flathub, or to test a release.
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+        with:
+          manifest-path: packaging/flatpak/io.github.Robocnop.BootVideoManager.yml
+          bundle: BootVideoManager-x86_64.flatpak
+          cache-key: flatpak-${{ env.TAG }}
+          upload-artifact: false
+
+      - name: Name the bundle after the version
+        run: mv BootVideoManager-x86_64.flatpak "BootVideoManager-${TAG#v}-x86_64.flatpak"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: '*.flatpak'
+          if-no-files-found: error
+
   release:
-    needs: [windows, linux]
+    needs: [windows, linux, flatpak]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

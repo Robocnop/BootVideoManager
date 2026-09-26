@@ -1,3 +1,4 @@
+using System.Net;
 using Avalonia;
 using Avalonia.Headless;
 using BootVideoManager.App;
@@ -43,6 +44,17 @@ internal sealed class FakePlatform : IPlatformServices
     {
         OpenedUris.Add(uri);
         return Task.CompletedTask;
+    }
+
+    /// <summary>Cookies "captured" by the next sign-in window; <c>null</c> = the user closed it.</summary>
+    public IReadOnlyList<Cookie>? SignInCookies { get; set; }
+
+    public List<Uri> SignInStarts { get; } = [];
+
+    public Task<IReadOnlyList<Cookie>?> SignInWithBrowserAsync(Uri startUri, Func<Uri, bool> isFinished, string dataDirectory)
+    {
+        SignInStarts.Add(startUri);
+        return Task.FromResult(SignInCookies);
     }
 
     public Task OpenFolderAsync(string path)

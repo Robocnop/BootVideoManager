@@ -1,0 +1,214 @@
+# Flatpak manifest (Flathub). Build and install locally from the repository root:
+#   flatpak-builder --user --install --force-clean build-dir packaging/flatpak/io.github.Robocnop.BootVideoManager.yml
+# The Flathub copy of this file replaces the local "dir" source of the last module with the release's git tag.
+# After changing NuGet dependencies, regenerate nuget-sources.json (see packaging/flatpak/README.md).
+id: io.github.Robocnop.BootVideoManager
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet10
+command: boot-video-manager
+finish-args:
+  - --share=ipc
+  - --share=network
+  # Avalonia draws through X11 (XWayland on Wayland sessions).
+  - --socket=x11
+  - --device=dri
+  # Sound of the video previews.
+  - --socket=pulseaudio
+  # Steam's folders: startup videos are installed into <Steam>/config/uioverrides/movies and the random startup
+  # movie option lives in <Steam>/config/config.vdf. ~/.steam only holds symlinks to the real Steam folder.
+  - --filesystem=~/.steam
+  - --filesystem=~/.local/share/Steam
+  # Steam installed as a Flatpak keeps its folder in ~/.var/app/com.valvesoftware.Steam, which Flathub does not let
+  # other apps open by default: the user picks that folder in Settings (the file chooser portal grants access to it).
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /share/doc
+  - /share/man
+  - '*.a'
+  - '*.la'
+
+modules:
+  # libvlc renders the video previews. VLC 3 needs FFmpeg 4 (the runtime ships a newer one), so a minimal private
+  # FFmpeg with only the decoders used by startup videos (WebM: VP8/VP9 + Opus/Vorbis) is built first.
+  - name: ffmpeg
+    config-opts:
+      - --enable-pic
+      - --enable-shared
+      - --disable-static
+      - --disable-doc
+      - --disable-programs
+      - --disable-everything
+      - --disable-network
+      - --disable-avdevice
+      - --disable-avfilter
+      - --disable-postproc
+      - --enable-avcodec
+      - --enable-avformat
+      - --enable-swscale
+      - --enable-swresample
+      - --enable-decoder=vp8,vp9,opus,vorbis,h264,aac
+      - --enable-parser=vp8,vp9,opus,vorbis,h264,aac
+    cleanup:
+      - /share/ffmpeg
+    sources:
+      - type: archive
+        url: https://ffmpeg.org/releases/ffmpeg-4.4.8.tar.xz
+        sha256: c73848c4ae283d9eaee7be3b276affbc3543380483555500d0dd2c9b7e1c39c3
+        x-checker-data:
+          type: anitya
+          project-id: 5405
+          versions:
+            '>=': '4'
+            <: '5'
+          url-template: https://ffmpeg.org/releases/ffmpeg-$version.tar.xz
+
+  # Matroska / WebM demuxer of VLC.
+  - name: libebml
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      - -DCMAKE_INSTALL_LIBDIR=lib
+    sources:
+      - type: archive
+        url: https://dl.matroska.org/downloads/libebml/libebml-1.4.5.tar.xz
+        sha256: 4971640b0592da29c2d426f303e137a9b0b3d07e1b81d069c1e56a2f49ab221b
+        x-checker-data:
+          type: anitya
+          project-id: 7879
+          url-template: https://dl.matroska.org/downloads/libebml/libebml-$version.tar.xz
+
+  - name: libmatroska
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      - -DCMAKE_INSTALL_LIBDIR=lib
+    sources:
+      - type: archive
+        url: https://dl.matroska.org/downloads/libmatroska/libmatroska-1.7.1.tar.xz
+        sha256: 572a3033b8d93d48a6a858e514abce4b2f7a946fe1f02cbfeca39bfd703018b3
+        x-checker-data:
+          type: anitya
+          project-id: 1657
+          url-template: https://dl.matroska.org/downloads/libmatroska/libmatroska-$version.tar.xz
+
+  # libvlc only: no player, no GUI, no scripting; previews are decoded into memory (vmem) and played through
+  # PulseAudio, streamed over HTTPS (GnuTLS).
+  - name: vlc
+    config-opts:
+      - BUILDCC=/usr/bin/gcc -std=gnu99
+      - CFLAGS=-O2 -g -std=gnu17
+      - CXXFLAGS=-O2 -g -std=gnu++17
+      - --disable-vlc
+      - --disable-qt
+      - --disable-skins2
+      - --disable-lua
+      - --disable-ncurses
+      - --disable-a52
+      - --disable-xcb
+      - --disable-wayland
+      - --disable-udev
+      - --disable-dbus
+      - --disable-alsa
+      - --disable-jack
+      - --disable-libva
+      - --disable-vdpau
+      - --disable-v4l2
+      - --disable-dvbpsi
+      - --disable-mad
+      - --disable-libcddb
+      - --disable-bluray
+      - --disable-dvdread
+      - --disable-dvdnav
+      - --disable-smbclient
+      - --disable-freetype
+      - --disable-fontconfig
+      - --disable-sdl-image
+      - --disable-sid
+      - --disable-gst-decode
+      - --disable-avahi
+      - --disable-mtp
+      - --disable-upnp
+      - --disable-microdns
+      - --disable-chromaprint
+      - --disable-archive
+      - --disable-libplacebo
+      - --disable-vpx
+      - --enable-avcodec
+      - --enable-avformat
+      - --enable-swscale
+      - --enable-matroska
+      - --enable-gnutls
+      - --enable-pulse
+      - --enable-opus
+      - --enable-vorbis
+    post-install:
+      # The plugin cache records modification times, which Flatpak resets: let libvlc scan its plugins instead.
+      - rm -f /app/lib/vlc/plugins/plugins.dat
+    cleanup:
+      - /share/applications
+      - /share/icons
+      - /share/kservices5
+      - /share/metainfo
+      - /share/solid
+      - /share/vlc/lua
+      - /lib/vlc/vlc-cache-gen
+    sources:
+      - type: archive
+        url: https://download.videolan.org/videolan/vlc/3.0.23/vlc-3.0.23.tar.xz
+        sha256: e891cae6aa3ccda69bf94173d5105cbc55c7a7d9b1d21b9b21666e69eff3e7e0
+        x-checker-data:
+          type: anitya
+          project-id: 6504
+          versions:
+            '>=': '3'
+            <: '4'
+          url-template: https://download.videolan.org/videolan/vlc/$version/vlc-$version.tar.xz
+
+  - name: boot-video-manager
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/dotnet10/bin
+      append-ld-library-path: /usr/lib/sdk/dotnet10/lib
+      env:
+        DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+        DOTNET_NOLOGO: 'true'
+        DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+      arch:
+        x86_64:
+          env:
+            RUNTIME: linux-x64
+        aarch64:
+          env:
+            RUNTIME: linux-arm64
+    build-commands:
+      - dotnet publish src/BootVideoManager.App/BootVideoManager.App.csproj -c Release -r "$RUNTIME" --self-contained
+        --source ./nuget-sources --source /usr/lib/sdk/dotnet10/nuget/packages -p:ContinuousIntegrationBuild=true
+        -o /app/lib/boot-video-manager
+      - mkdir -p /app/bin
+      - ln -s ../lib/boot-video-manager/BootVideoManager /app/bin/boot-video-manager
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.desktop /app/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 packaging/linux/boot-video-manager.png /app/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png
+      - install -Dm644 LICENSE /app/share/licenses/${FLATPAK_ID}/LICENSE
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - artifacts
+          - build-dir
+          - .flatpak-builder
+      - nuget-sources.json
