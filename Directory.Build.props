@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <Authors>Robocnop</Authors>
     <RepositoryUrl>https://github.com/Robocnop/BootVideoManager</RepositoryUrl>
   </PropertyGroup>
