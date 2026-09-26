@@ -141,7 +141,8 @@ site's official `/post/download/{id}` link.
 | `BootVideoManager-<version>-win-arm64-setup.exe` | Windows on ARM |
 | `BootVideoManager-<version>-win-x64-portable.exe` | Windows, no installation (single file) |
 | `BootVideoManager-<version>-win-arm64-portable.exe` | Windows on ARM, no installation |
-| `BootVideoManager-<version>-x86_64.flatpak` | **Linux / Steam Deck — recommended** (until the app is on Flathub) |
+| `BootVideoManager-<version>-x86_64.flatpak` | **Linux / Steam Deck — recommended** (updates itself afterwards) |
+| `BootVideoManager.flatpakref` | Linux: same app, installed straight from the update repository |
 | `BootVideoManager-<version>-linux-x64.tar.gz` | Linux x64, no installation (advanced) |
 | `SHA256SUMS.txt` | Checksums of every file |
 
@@ -150,11 +151,13 @@ site's official `/post/download/{id}` link.
   copy; uninstalling offers to remove settings and cache and never touches the videos placed in Steam.
 - The **portable** executable contains everything; its native libraries are extracted to `%TEMP%\.net` on first
   launch. It tells you when a new version is out but cannot replace itself: the button opens the download page.
-- **Linux / Steam Deck (desktop mode)**: download the `.flatpak` file and open it — your software center
-  (Discover, GNOME Software, Linux Mint's Software Manager…) installs it with everything included (video previews,
-  Steam sign-in). From a terminal: `flatpak install --user BootVideoManager-<version>-x86_64.flatpak`. It updates
-  through Flathub once the app is published there. If Steam itself is the Flatpak version, pick its folder
-  (`~/.var/app/com.valvesoftware.Steam/.local/share/Steam`) with *Settings › Choose a folder…*.
+- **Linux / Steam Deck (desktop mode)**: open [robocnop.github.io/BootVideoManager](https://robocnop.github.io/BootVideoManager/)
+  and click *Install*, or download the `.flatpak` file from a release and open it. Your software center (Linux Mint's
+  Software Manager, Discover, GNOME Software…) installs it with everything included (video previews, Steam sign-in),
+  then **updates it with every release**, like any other app. From a terminal:
+  `flatpak install --user https://robocnop.github.io/BootVideoManager/io.github.Robocnop.BootVideoManager.flatpakref`.
+  If Steam itself is the Flatpak version, pick its folder (`~/.var/app/com.valvesoftware.Steam/.local/share/Steam`)
+  with *Settings › Choose a folder…*.
 - The **Linux archive** needs VLC from your package manager for previews: extract it, then
   `chmod +x BootVideoManager && ./BootVideoManager`.
 

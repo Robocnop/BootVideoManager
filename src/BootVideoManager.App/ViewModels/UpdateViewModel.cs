@@ -84,7 +84,7 @@ public sealed partial class UpdateViewModel : ViewModelBase
     public string InstallButtonText => _canSelfUpdate ? Strings.UpdateInstall : Loc.T("Télécharger", "Download");
 
     /// <summary>Startup check: silent on failure, and skipped versions are not offered again.</summary>
-    /// <summary>Installed from a store (Flathub): updates come from there, the GitHub check is not used.</summary>
+    /// <summary>Installed as a Flatpak: updates come from its repository, the GitHub check is not used.</summary>
     public bool IsManagedByStore { get; }
 
     public async Task CheckAtStartupAsync()

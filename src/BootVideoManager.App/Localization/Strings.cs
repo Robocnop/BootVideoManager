@@ -80,8 +80,8 @@ public static class Strings
         "Sign in with Steam to like videos and find your likes in the catalog. You sign in on Steam's real pages: the app never sees your password, it only keeps the site session (encrypted on this PC).");
 
     public static string UpdatesManagedByStore => Loc.T(
-        "Cette copie a été installée depuis Flathub : les mises à jour arrivent par votre logithèque (Discover, Logithèque, Gestionnaire de logiciels…).",
-        "This copy was installed from Flathub: updates come through your software center (Discover, GNOME Software, Software Manager…).");
+        "Cette copie est un Flatpak : les mises à jour arrivent par votre logithèque (Gestionnaire de logiciels, Discover, Logiciels…) ou avec « flatpak update ».",
+        "This copy is a Flatpak: updates come through your software center (Software Manager, Discover, GNOME Software…) or with \"flatpak update\".");
 
     public static string SignInWithSteam => Loc.T("Se connecter avec Steam", "Sign in with Steam");
 

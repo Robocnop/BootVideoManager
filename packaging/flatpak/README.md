@@ -8,7 +8,9 @@ which lets Flathub verify the app).
 | `io.github.Robocnop.BootVideoManager.yml` | Manifest: GNOME 51 runtime (WebKitGTK 4.1 for the sign-in window), .NET 10 SDK extension, a minimal FFmpeg 4 + libvlc for the previews, then the app. |
 | `nuget-sources.json` | Every NuGet package with its SHA-512: Flathub builds offline. **Regenerate it whenever a package changes.** |
 | `*.desktop`, `*.metainfo.xml` | Launcher and store listing (screenshots are loaded from the release tag). |
-| `flathub.json` | Copied to the Flathub repository: x86_64 only (Steam has no official ARM Linux build). |
+| `boot-video-manager.gpg` | Public key of the update repository (the private key is the `FLATPAK_GPG_PRIVATE_KEY` secret). |
+| `make-site.sh` | Builds the GitHub Pages site: signed repository, `.flatpakref`, `.flatpakrepo`, install page. |
+| `flathub.json` | Kept for a future Flathub submission: x86_64 only (Steam has no official ARM Linux build). |
 
 ## Build and run locally (Linux, or WSL on Windows)
 
@@ -39,9 +41,18 @@ python3 flatpak-dotnet-generator.py packaging/flatpak/nuget-sources.json \
   src/BootVideoManager.App/BootVideoManager.App.csproj --dotnet 10 --freedesktop 26.08 --runtime linux-x64
 ```
 
-## Releases
+## Updates (self-hosted repository)
 
-The Release workflow builds `BootVideoManager-<version>-x86_64.flatpak` from this manifest and attaches it to the
-GitHub release. On Flathub, the manifest lives in `github.com/flathub/io.github.Robocnop.BootVideoManager`: for a new
-version, update the app module's source there (git `tag` + `commit`), copy `nuget-sources.json` if it changed, and
-add the `<release>` entry to the metainfo here first (Flathub reads it from the tagged sources).
+Every release (not pre-releases) runs the `flatpak` job of `.github/workflows/release.yml`:
+
+1. pulls the currently published version back from https://robocnop.github.io/BootVideoManager/repo (for deltas);
+2. builds the app into that OSTree repository on branch `stable`, signed with the `FLATPAK_GPG_PRIVATE_KEY` secret;
+3. makes `BootVideoManager-<version>-x86_64.flatpak`, which embeds the repository URL and public key: installing it
+   adds a `bootvideomanager-origin` remote, so software centers and `flatpak update` pick up later releases;
+4. deploys the site (repository + `io.github.Robocnop.BootVideoManager.flatpakref` + install page) to GitHub Pages.
+
+Add the `<release>` entry to the metainfo for each version. If the signing key is ever replaced, users must
+reinstall once: their remote trusts the old public key.
+
+Flathub is not used for now: its rules forbid AI-generated manifests and AI-opened submissions, and ask for a longer
+project history.

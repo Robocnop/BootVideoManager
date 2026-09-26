@@ -77,33 +77,74 @@ jobs:
           path: artifacts/publish/*.tar.gz
           if-no-files-found: error
 
-  # Same manifest as Flathub: a .flatpak bundle anyone can install with a double click (or `flatpak install`) before
-  # the app is on Flathub, or to test a release.
+  # Linux package: a signed Flatpak repository published on GitHub Pages (robocnop.github.io/BootVideoManager), and a
+  # .flatpak bundle pointing at it. Whoever installs the bundle (or the .flatpakref) gets later releases through their
+  # software center / `flatpak update`. The previous release is pulled back first so updates download as deltas.
   flatpak:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
       options: --privileged
+    env:
+      APP_ID: io.github.Robocnop.BootVideoManager
+      SITE_URL: https://robocnop.github.io/BootVideoManager
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.TAG }}
 
-      - uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+      - uses: actions/cache@v4
         with:
-          manifest-path: packaging/flatpak/io.github.Robocnop.BootVideoManager.yml
-          bundle: BootVideoManager-x86_64.flatpak
-          cache-key: flatpak-${{ env.TAG }}
-          upload-artifact: false
+          path: .flatpak-builder
+          key: flatpak-builder-${{ hashFiles('packaging/flatpak/*.yml') }}
+          restore-keys: flatpak-builder-
 
-      - name: Name the bundle after the version
-        run: mv BootVideoManager-x86_64.flatpak "BootVideoManager-${TAG#v}-x86_64.flatpak"
+      - name: Import the repository signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then echo "::error::The FLATPAK_GPG_PRIVATE_KEY secret is missing."; exit 1; fi
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -p -m 700 "$GNUPGHOME"
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+          echo "GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ { print $10; exit }')" >> "$GITHUB_ENV"
+
+      - name: Start from the published repository
+        run: |
+          command -v ostree > /dev/null || dnf install -y ostree
+          ostree init --repo=repo --mode=archive-z2
+          ostree remote add --repo=repo --no-gpg-verify published "$SITE_URL/repo"
+          ostree pull --repo=repo --mirror --depth=1 published "app/$APP_ID/x86_64/stable" "runtime/$APP_ID.Locale/x86_64/stable" \
+            || echo "No published repository yet: starting a new one."
+
+      - name: Build into the repository
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak-builder --user --install-deps-from=flathub --disable-rofiles-fuse --force-clean --ccache \
+            --default-branch=stable --repo=repo --gpg-sign="$GPG_KEY_ID" --gpg-homedir="$GNUPGHOME" \
+            build-dir "packaging/flatpak/$APP_ID.yml"
+          flatpak build-update-repo --generate-static-deltas --prune --prune-depth=2 \
+            --gpg-sign="$GPG_KEY_ID" --gpg-homedir="$GNUPGHOME" --title="Boot Video Manager" repo
+
+      - name: Bundle and site
+        run: |
+          flatpak build-bundle --repo-url="$SITE_URL/repo/" --gpg-keys=packaging/flatpak/boot-video-manager.gpg \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo repo "BootVideoManager-${TAG#v}-x86_64.flatpak" "$APP_ID" stable
+          bash packaging/flatpak/make-site.sh repo site "$SITE_URL"
+          cp "site/$APP_ID.flatpakref" "BootVideoManager.flatpakref"
 
       - uses: actions/upload-artifact@v4
         with:
           name: flatpak
-          path: '*.flatpak'
+          path: |
+            *.flatpak
+            BootVideoManager.flatpakref
           if-no-files-found: error
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
 
   release:
     needs: [windows, linux, flatpak]
@@ -116,6 +157,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          # Not the github-pages artifact (the Flatpak repository site).
+          pattern: '{windows,linux,flatpak}'
           merge-multiple: true
 
       - name: Checksums
@@ -135,3 +178,17 @@ jobs:
             if [[ -f "docs/release-notes/$TAG.md" ]]; then args+=(--notes-file "docs/release-notes/$TAG.md"); else args+=(--generate-notes); fi
             gh release create "$TAG" dist/* "${args[@]}"
           fi
+
+  pages:
+    needs: release
+    if: ${{ !contains(github.event.inputs.tag || github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

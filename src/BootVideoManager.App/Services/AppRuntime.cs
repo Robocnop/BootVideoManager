@@ -17,7 +17,7 @@ public static class AppRuntime
         + (RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "arm64" : "x64");
 
     /// <summary>
-    /// Running as a Flatpak (e.g. from Flathub): the store installs updates, so the app must not offer its own.
+    /// Running as a Flatpak: updates come from its repository (robocnop.github.io/BootVideoManager), not from the app.
     /// </summary>
     public static bool IsFlatpak => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("FLATPAK_ID"));
 
